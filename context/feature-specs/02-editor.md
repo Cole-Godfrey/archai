@@ -12,7 +12,7 @@ Requirements:
 - Dark background with subtle bottom border
 
 ### Project Sidebar
-Create `components/editor/project-sidebar/tsx`.
+Create `components/editor/project-sidebar.tsx`.
 
 Requirements:
 - Sidebar should float above the editor canvas
