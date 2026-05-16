@@ -4,32 +4,35 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Not started
+- Foundation setup
 
 ## Current Goal
 
-- Define the immediate implementation goal here.
+- Design system foundation is implemented and verified; ready for the next feature unit.
 
 ## Completed
 
-- None yet.
+- Design system and UI primitive components from `context/feature-specs/01-design-system.md`.
 
 ## In Progress
 
-- None yet.
+- None.
 
 ## Next Up
 
-- Add the next planned feature unit here.
+- Select and start the next feature unit.
 
 ## Open Questions
 
-- Add unresolved product or implementation questions here.
+- None.
 
 ## Architecture Decisions
 
-- Add decisions that affect the system design or data model.
+- shadcn/ui is configured with generated primitives in `components/ui/*`; project-specific theming lives in `app/globals.css`.
 
 ## Session Notes
 
-- Add context needed to resume work in the next session.
+- Started implementation of `context/feature-specs/01-design-system.md` after reading the required project context files and `AGENTS.md`.
+- Initialized shadcn/ui with the Next.js preset, generated the requested UI primitives, and installed `lucide-react`.
+- Replaced the generated neutral theme variables with the documented Archai dark tokens and applied the root `dark` class in `app/layout.tsx`.
+- Verified with `npm run lint`, `npm run build`, a direct `cn()` smoke check, and `curl -I http://127.0.0.1:3000`.
