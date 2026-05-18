@@ -4,16 +4,17 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Editor chrome
+- Authentication
 
 ## Current Goal
 
-- Editor chrome components from `context/feature-specs/02-editor.md` are implemented and verified.
+- `context/feature-specs/03-auth.md` is implemented and verified.
 
 ## Completed
 
-- Design system and UI primitive components from `context/feature-specs/01-design-system.md`.
-- Editor navbar, floating project sidebar shell, and dialog composition pattern from `context/feature-specs/02-editor.md`.
+- `context/feature-specs/01-design-system.md`
+- `context/feature-specs/02-editor.md`
+- `context/feature-specs/03-auth.md`
 
 ## In Progress
 
@@ -21,7 +22,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Select and start the next feature unit.
+- Select and start the next feature spec.
 
 ## Open Questions
 
@@ -30,13 +31,8 @@ Update this file whenever the current phase, active feature, or implementation s
 ## Architecture Decisions
 
 - shadcn/ui is configured with generated primitives in `components/ui/*`; project-specific theming lives in `app/globals.css`.
+- Clerk public auth paths are derived from the standard `NEXT_PUBLIC_CLERK_SIGN_IN_URL` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL` env vars, with `/sign-in` and `/sign-up` as local route fallbacks.
 
 ## Session Notes
 
-- Started implementation of `context/feature-specs/01-design-system.md` after reading the required project context files and `AGENTS.md`.
-- Initialized shadcn/ui with the Next.js preset, generated the requested UI primitives, and installed `lucide-react`.
-- Replaced the generated neutral theme variables with the documented Archai dark tokens and applied the root `dark` class in `app/layout.tsx`.
-- Verified with `npm run lint`, `npm run build`, a direct `cn()` smoke check, and `curl -I http://127.0.0.1:3000`.
-- Started implementation of `context/feature-specs/02-editor.md` after re-reading the required project context files and the local Next.js Server/Client Components guide.
-- Added `components/editor/editor-navbar.tsx`, `components/editor/project-sidebar.tsx`, and `components/editor/dialog-pattern.tsx`.
-- Verified editor chrome with `npm run lint`, `npx tsc --noEmit`, and `npm run build`.
+- Feature specs 01, 02, and 03 have been implemented and verified with lint, TypeScript, production build, and auth-route checks.
