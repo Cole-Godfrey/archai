@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Project dialogues
+- Feature 05 (TBD)
 
 ## Current Goal
 
-- `context/feature-specs/04-project-dialogues.md` is implemented and verified.
+- Project dialogue rename validation and slug preview cleanup are implemented and verified.
 
 ## Completed
 
@@ -23,7 +23,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Select and start the next feature spec.
+- Feature 05 (TBD)
 
 ## Open Questions
 
@@ -40,3 +40,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Started feature spec 04 project dialogues.
 - Implemented the editor home screen, mock project sidebar actions, and project dialogue state/components for feature spec 04.
 - Feature spec 04 has been verified with lint, TypeScript, and production build.
+- Started a project creation slug validation fix for names that slugify to an empty value.
+- Project creation now requires a non-empty generated slug; the fix was verified with lint, TypeScript, and production build.
+- Started follow-up cleanup to apply slug validation to rename and simplify slug preview display.
+- Rename now also requires a non-empty generated slug, and create/rename slug previews render as plain text below the input with blank output for empty slugs; verified with lint, TypeScript, production build, and diff whitespace checks.

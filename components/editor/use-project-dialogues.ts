@@ -15,6 +15,7 @@ interface UseProjectDialoguesResult {
   selectedProject: MockProject | null
   formState: ProjectFormState
   slugPreview: string
+  hasValidSlug: boolean
   isLoading: boolean
   isCreateOpen: boolean
   isRenameOpen: boolean
@@ -30,14 +31,12 @@ interface UseProjectDialoguesResult {
 }
 
 function getSlugPreview(name: string) {
-  const slug = name
+  return name
     .trim()
     .toLowerCase()
     .replace(/['"]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-
-  return slug || "project-slug"
 }
 
 function useProjectDialogues(): UseProjectDialoguesResult {
@@ -55,6 +54,7 @@ function useProjectDialogues(): UseProjectDialoguesResult {
     () => getSlugPreview(formState.name),
     [formState.name]
   )
+  const hasValidSlug = slugPreview.length > 0
 
   function clearPendingSubmit() {
     if (pendingSubmitRef.current === null) {
@@ -117,7 +117,7 @@ function useProjectDialogues(): UseProjectDialoguesResult {
   function submitCreateProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (isLoading || formState.name.trim().length === 0) {
+    if (isLoading || !hasValidSlug) {
       return
     }
 
@@ -130,7 +130,7 @@ function useProjectDialogues(): UseProjectDialoguesResult {
     if (
       isLoading ||
       selectedProject === null ||
-      formState.name.trim().length === 0
+      !hasValidSlug
     ) {
       return
     }
@@ -160,6 +160,7 @@ function useProjectDialogues(): UseProjectDialoguesResult {
     selectedProject,
     formState,
     slugPreview,
+    hasValidSlug,
     isLoading,
     isCreateOpen: activeDialogue === "create",
     isRenameOpen: activeDialogue === "rename",
