@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Feature 05 (TBD)
+- Feature 05 (Prisma)
 
 ## Current Goal
 
-- Project dialogue rename validation and slug preview cleanup are implemented and verified.
+- Feature 05 Prisma data layer is implemented and verified.
 
 ## Completed
 
@@ -16,6 +16,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/02-editor.md`
 - `context/feature-specs/03-auth.md`
 - `context/feature-specs/04-project-dialogues.md`
+- `context/feature-specs/05-prisma.md`
 
 ## In Progress
 
@@ -23,7 +24,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Feature 05 (TBD)
+- Feature 06 (TBD)
 
 ## Open Questions
 
@@ -36,6 +37,10 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Session Notes
 
+- Started feature spec 05 Prisma data layer implementation.
+- Added the initial Project and ProjectCollaborator Prisma models plus the cached Prisma client singleton.
+- Applied the first Prisma migration and generated the Prisma Client for the project models.
+- Feature spec 05 has been verified with Prisma schema validation and production build.
 - Feature specs 01, 02, and 03 have been implemented and verified with lint, TypeScript, production build, and auth-route checks.
 - Started feature spec 04 project dialogues.
 - Implemented the editor home screen, mock project sidebar actions, and project dialogue state/components for feature spec 04.
