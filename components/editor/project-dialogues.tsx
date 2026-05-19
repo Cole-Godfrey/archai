@@ -13,8 +13,9 @@ interface ProjectDialoguesProps {
 function ProjectDialogues({ dialogues }: ProjectDialoguesProps) {
   const selectedProjectName =
     dialogues.selectedProject?.name ?? "Selected project"
-  const canSubmitProjectName =
-    dialogues.formState.name.trim().length > 0 && !dialogues.isLoading
+  const hasProjectName = dialogues.formState.name.trim().length > 0
+  const hasInvalidSlug = hasProjectName && !dialogues.hasValidSlug
+  const canSubmitProjectName = dialogues.hasValidSlug && !dialogues.isLoading
 
   function handleOpenChange(isOpen: boolean) {
     if (!isOpen) {
@@ -54,7 +55,7 @@ function ProjectDialogues({ dialogues }: ProjectDialoguesProps) {
         >
           <form
             id="create-project-form"
-            className="grid gap-4"
+            className="grid gap-2"
             onSubmit={dialogues.submitCreateProject}
           >
             <div className="grid gap-2">
@@ -73,19 +74,24 @@ function ProjectDialogues({ dialogues }: ProjectDialoguesProps) {
                 placeholder="Architecture workspace"
                 className="rounded-md bg-surface text-copy-primary placeholder:text-copy-faint"
                 disabled={dialogues.isLoading}
+                aria-describedby="create-project-slug"
+                aria-invalid={hasInvalidSlug || undefined}
                 onChange={(event) =>
                   dialogues.setProjectName(event.currentTarget.value)
                 }
               />
-            </div>
-            <div className="rounded-md border border-surface-border bg-surface px-3 py-2">
-              <p className="text-xs font-medium text-copy-muted">
-                Slug preview
-              </p>
-              <p className="mt-1 truncate font-mono text-sm text-brand-strong">
+              <p
+                id="create-project-slug"
+                className="min-h-5 truncate font-mono text-xs text-brand-strong"
+              >
                 {dialogues.slugPreview}
               </p>
             </div>
+            {hasInvalidSlug ? (
+              <p className="text-xs text-state-error">
+                Use at least one letter or number.
+              </p>
+            ) : null}
           </form>
         </EditorDialogPattern>
       </Dialog>
@@ -139,10 +145,23 @@ function ProjectDialogues({ dialogues }: ProjectDialoguesProps) {
               autoComplete="off"
               className="rounded-md bg-surface text-copy-primary"
               disabled={dialogues.isLoading}
+              aria-describedby="rename-project-slug"
+              aria-invalid={hasInvalidSlug || undefined}
               onChange={(event) =>
                 dialogues.setProjectName(event.currentTarget.value)
               }
             />
+            <p
+              id="rename-project-slug"
+              className="min-h-5 truncate font-mono text-xs text-brand-strong"
+            >
+              {dialogues.slugPreview}
+            </p>
+            {hasInvalidSlug ? (
+              <p className="text-xs text-state-error">
+                Use at least one letter or number.
+              </p>
+            ) : null}
           </form>
         </EditorDialogPattern>
       </Dialog>
