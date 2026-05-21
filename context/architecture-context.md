@@ -36,6 +36,7 @@
 - Only authenticated users can access protected routes.
 - Only the owner or a collaborator can mutate project resources.
 - Liveblocks room tokens are issued only after verifying project membership.
+- Project IDs are used as Liveblocks room IDs for editor workspaces.
 
 ## Starter System Designs
 

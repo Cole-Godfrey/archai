@@ -1,18 +1,22 @@
 "use client"
 
 import { Pencil, Plus, Trash2, X } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MOCK_PROJECTS, type MockProject } from "@/components/editor/mock-projects"
 import { cn } from "@/lib/utils"
+import type { EditorProject } from "@/types/project"
 
 interface ProjectSidebarProps {
   isOpen: boolean
+  activeProjectId?: string
+  ownedProjects: EditorProject[]
+  sharedProjects: EditorProject[]
   onClose: () => void
   onCreateProject: () => void
-  onRenameProject: (project: MockProject) => void
-  onDeleteProject: (project: MockProject) => void
+  onRenameProject: (project: EditorProject) => void
+  onDeleteProject: (project: EditorProject) => void
   className?: string
 }
 
@@ -31,43 +35,58 @@ function EmptyProjectState({ title, description }: EmptyProjectStateProps) {
 }
 
 interface ProjectListProps {
-  projects: MockProject[]
+  activeProjectId?: string
+  projects: EditorProject[]
   emptyTitle: string
   emptyDescription: string
-  onRenameProject: (project: MockProject) => void
-  onDeleteProject: (project: MockProject) => void
+  onRenameProject: (project: EditorProject) => void
+  onDeleteProject: (project: EditorProject) => void
 }
 
 interface ProjectListItemProps {
-  project: MockProject
-  onRenameProject: (project: MockProject) => void
-  onDeleteProject: (project: MockProject) => void
+  activeProjectId?: string
+  project: EditorProject
+  onRenameProject: (project: EditorProject) => void
+  onDeleteProject: (project: EditorProject) => void
 }
 
 function ProjectListItem({
+  activeProjectId,
   project,
   onRenameProject,
   onDeleteProject,
 }: ProjectListItemProps) {
   const canManageProject = project.role === "owner"
+  const isActive = activeProjectId === project.id
   const projectMeta =
     project.role === "owner"
-      ? project.updatedAt
+      ? project.updatedAtLabel
       : project.ownerName
-        ? `${project.updatedAt} by ${project.ownerName}`
-        : project.updatedAt
+        ? `${project.updatedAtLabel} by ${project.ownerName}`
+        : project.updatedAtLabel
 
   return (
-    <li className="flex items-start gap-3 rounded-lg border border-surface-border bg-elevated/60 p-3">
-      <div className="min-w-0 flex-1">
+    <li
+      className={cn(
+        "flex items-start gap-3 rounded-lg border bg-elevated/60 p-3 transition-colors",
+        isActive
+          ? "border-brand bg-accent-dim"
+          : "border-surface-border hover:border-surface-border-subtle"
+      )}
+    >
+      <Link
+        href={`/editor/${project.id}`}
+        className="min-w-0 flex-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-current={isActive ? "page" : undefined}
+      >
         <p className="truncate text-sm font-medium text-copy-primary">
           {project.name}
         </p>
         <p className="mt-1 truncate font-mono text-xs text-copy-muted">
-          /{project.slug}
+          /{project.roomId}
         </p>
         <p className="mt-2 truncate text-xs text-copy-faint">{projectMeta}</p>
-      </div>
+      </Link>
 
       {canManageProject ? (
         <div className="flex shrink-0 items-center gap-1">
@@ -100,6 +119,7 @@ function ProjectListItem({
 }
 
 function ProjectList({
+  activeProjectId,
   projects,
   emptyTitle,
   emptyDescription,
@@ -115,6 +135,7 @@ function ProjectList({
       {projects.map((project) => (
         <ProjectListItem
           key={project.id}
+          activeProjectId={activeProjectId}
           project={project}
           onRenameProject={onRenameProject}
           onDeleteProject={onDeleteProject}
@@ -126,19 +147,15 @@ function ProjectList({
 
 function ProjectSidebar({
   isOpen,
+  activeProjectId,
+  ownedProjects,
+  sharedProjects,
   onClose,
   onCreateProject,
   onRenameProject,
   onDeleteProject,
   className,
 }: ProjectSidebarProps) {
-  const ownedProjects = MOCK_PROJECTS.filter(
-    (project) => project.role === "owner"
-  )
-  const sharedProjects = MOCK_PROJECTS.filter(
-    (project) => project.role !== "owner"
-  )
-
   return (
     <>
       <button
@@ -186,6 +203,7 @@ function ProjectSidebar({
 
           <TabsContent value="my-projects" className="mt-4 flex min-h-0">
             <ProjectList
+              activeProjectId={activeProjectId}
               projects={ownedProjects}
               emptyTitle="No projects yet"
               emptyDescription="Projects you create will appear here."
@@ -195,6 +213,7 @@ function ProjectSidebar({
           </TabsContent>
           <TabsContent value="shared" className="mt-4 flex min-h-0">
             <ProjectList
+              activeProjectId={activeProjectId}
               projects={sharedProjects}
               emptyTitle="No shared projects"
               emptyDescription="Projects shared with you will appear here."

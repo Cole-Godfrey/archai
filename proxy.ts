@@ -12,10 +12,11 @@ const isPublicRoute = createRouteMatcher([
   routePatternForPath(SIGN_IN_PATH),
   routePatternForPath(SIGN_UP_PATH),
 ])
+const isProjectApiRoute = createRouteMatcher(["/api/projects(.*)"])
 
 export default clerkMiddleware(
   async (auth, request) => {
-    if (!isPublicRoute(request)) {
+    if (!isPublicRoute(request) && !isProjectApiRoute(request)) {
       await auth.protect()
     }
   },
