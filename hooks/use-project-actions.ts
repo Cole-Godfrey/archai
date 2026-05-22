@@ -126,6 +126,12 @@ function getApiErrorMessage(payload: unknown, fallback: string) {
   return fallback
 }
 
+function getRequestFailureMessage(action: string, error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : "Unknown error"
+
+  return `${action} ${errorMessage}`
+}
+
 function useProjectActions({
   activeProjectId,
   ownedProjects,
@@ -212,34 +218,42 @@ function useProjectActions({
     setIsLoading(true)
     setErrorMessage(null)
 
-    const response = await fetch("/api/projects", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: roomIdPreview,
-        name: projectName,
-      }),
-    })
-    const payload = await readJson(response)
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: roomIdPreview,
+          name: projectName,
+        }),
+      })
+      const payload = await readJson(response)
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setErrorMessage(
+          getApiErrorMessage(payload, "Unable to create the project.")
+        )
+        setIsLoading(false)
+        return
+      }
+
+      if (!isProjectMutationResponse(payload)) {
+        setErrorMessage("The project response was invalid.")
+        setIsLoading(false)
+        return
+      }
+
+      resetState()
+      router.push(`/editor/${encodeURIComponent(payload.project.id)}`)
+    } catch (error) {
       setErrorMessage(
-        getApiErrorMessage(payload, "Unable to create the project.")
+        getRequestFailureMessage("Unable to create the project:", error)
       )
       setIsLoading(false)
       return
     }
-
-    if (!isProjectMutationResponse(payload)) {
-      setErrorMessage("The project response was invalid.")
-      setIsLoading(false)
-      return
-    }
-
-    resetState()
-    router.push(`/editor/${encodeURIComponent(payload.project.id)}`)
   }
 
   async function submitRenameProject(event: FormEvent<HTMLFormElement>) {
@@ -254,30 +268,38 @@ function useProjectActions({
     setIsLoading(true)
     setErrorMessage(null)
 
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(targetProject.id)}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: projectName,
-        }),
-      }
-    )
-    const payload = await readJson(response)
+    try {
+      const response = await fetch(
+        `/api/projects/${encodeURIComponent(targetProject.id)}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: projectName,
+          }),
+        }
+      )
+      const payload = await readJson(response)
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setErrorMessage(
+          getApiErrorMessage(payload, "Unable to rename the project.")
+        )
+        setIsLoading(false)
+        return
+      }
+
+      resetState()
+      router.refresh()
+    } catch (error) {
       setErrorMessage(
-        getApiErrorMessage(payload, "Unable to rename the project.")
+        getRequestFailureMessage("Unable to rename the project:", error)
       )
       setIsLoading(false)
       return
     }
-
-    resetState()
-    router.refresh()
   }
 
   async function confirmDeleteProject() {
@@ -290,30 +312,38 @@ function useProjectActions({
     setIsLoading(true)
     setErrorMessage(null)
 
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}`,
-      {
-        method: "DELETE",
-      }
-    )
-    const payload = await readJson(response)
+    try {
+      const response = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}`,
+        {
+          method: "DELETE",
+        }
+      )
+      const payload = await readJson(response)
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setErrorMessage(
+          getApiErrorMessage(payload, "Unable to delete the project.")
+        )
+        setIsLoading(false)
+        return
+      }
+
+      resetState()
+
+      if (activeProjectId === projectId) {
+        router.replace("/editor")
+        return
+      }
+
+      router.refresh()
+    } catch (error) {
       setErrorMessage(
-        getApiErrorMessage(payload, "Unable to delete the project.")
+        getRequestFailureMessage("Unable to delete the project:", error)
       )
       setIsLoading(false)
       return
     }
-
-    resetState()
-
-    if (activeProjectId === projectId) {
-      router.replace("/editor")
-      return
-    }
-
-    router.refresh()
   }
 
   return {

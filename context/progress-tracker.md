@@ -62,3 +62,5 @@ Update this file whenever the current phase, active feature, or implementation s
 - Adjusted the create project slug preview to show only the generated slug without a `Room ID` label.
 - Fixed the PostgreSQL SSL mode warning by changing local `DATABASE_URL` values from `sslmode=require` to `sslmode=verify-full`.
 - Marked the SSL mode warning entry resolved in `context/current-issues.md`.
+- Wrapped editor home project create, rename, and delete API calls in request failure handling so fetch/read errors surface in dialogs and loading state clears without resetting successful navigation state.
+- Project action request failure handling was verified with lint and production build.
