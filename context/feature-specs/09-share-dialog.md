@@ -7,6 +7,7 @@ Owners can:
 - View current collaborators and the project owner
 - Remove collaborators
 - Copy the project link with temporary `Copied!` feedback
+- Not invite any email address that belongs to the project owner's Clerk account
 
 Collaborators can:
 - View the owner and collaborator list only
@@ -20,6 +21,9 @@ Use Clerk Backend API to enrich collaborator emails with:
 - Avatar image
 
 If a Clerk user is not found for an email, fall back to showing the email only.
+
+If the owner cannot be resolved from Clerk, show a generic owner label. Do not
+expose the internal Clerk owner ID in the share dialog API payload.
 
 ## Implementation
 Add the required API logic for:

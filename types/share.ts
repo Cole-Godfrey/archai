@@ -3,7 +3,7 @@ import type { EditorProject } from "@/types/project"
 interface ProjectCollaboratorSummary {
   id: string
   role: "owner" | "collaborator"
-  email: string
+  email: string | null
   displayName: string | null
   avatarUrl: string | null
   createdAt: string

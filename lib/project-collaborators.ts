@@ -27,15 +27,18 @@ function mapUsersByEmail(users: User[]) {
   const usersByEmail = new Map<string, User>()
 
   for (const user of users) {
-    for (const emailAddress of user.emailAddresses) {
-      usersByEmail.set(
-        normalizeCollaboratorEmail(emailAddress.emailAddress),
-        user
-      )
+    for (const email of getUserEmails(user)) {
+      usersByEmail.set(email, user)
     }
   }
 
   return usersByEmail
+}
+
+function getUserEmails(user: User) {
+  return user.emailAddresses.map((emailAddress) =>
+    normalizeCollaboratorEmail(emailAddress.emailAddress)
+  )
 }
 
 function getUserPrimaryEmail(user: User) {
@@ -57,6 +60,12 @@ async function getClerkUserById(userId: string) {
   } catch {
     return null
   }
+}
+
+async function getClerkUserEmailsById(userId: string) {
+  const user = await getClerkUserById(userId)
+
+  return user === null ? [] : getUserEmails(user)
 }
 
 async function getClerkUsersByEmail(emails: string[]) {
@@ -112,12 +121,13 @@ async function getSerializedProjectAccessMembers(
   const serializedCollaborators = await serializeProjectCollaborators(
     collaborators
   )
-  const ownerEmail = ownerUser === null ? project.ownerId : getUserPrimaryEmail(ownerUser)
+  const ownerEmail = ownerUser === null ? null : getUserPrimaryEmail(ownerUser)
   const ownerMember: ProjectCollaboratorSummary = {
     id: `owner:${project.ownerId}`,
     role: "owner",
-    email: ownerEmail ?? project.ownerId,
-    displayName: ownerUser === null ? null : getUserDisplayName(ownerUser),
+    email: ownerEmail,
+    displayName:
+      ownerUser === null ? "Project owner" : getUserDisplayName(ownerUser),
     avatarUrl: ownerUser?.imageUrl ?? null,
     createdAt: project.createdAt.toISOString(),
   }
@@ -163,6 +173,7 @@ async function serializeProjectCollaborators(
 }
 
 export {
+  getClerkUserEmailsById,
   getSerializedProjectAccessMembers,
   getSerializedProjectCollaborators,
   normalizeCollaboratorEmail,

@@ -56,7 +56,7 @@ function isCollaboratorSummary(
     isRecord(value) &&
     typeof value.id === "string" &&
     (value.role === "owner" || value.role === "collaborator") &&
-    typeof value.email === "string" &&
+    (typeof value.email === "string" || value.email === null) &&
     (typeof value.displayName === "string" || value.displayName === null) &&
     (typeof value.avatarUrl === "string" || value.avatarUrl === null) &&
     typeof value.createdAt === "string"
@@ -107,7 +107,9 @@ function getApiErrorMessage(payload: unknown, fallback: string) {
 }
 
 function CollaboratorAvatar({ collaborator }: CollaboratorAvatarProps) {
-  const fallbackInitial = collaborator.email.charAt(0).toUpperCase()
+  const fallbackText =
+    collaborator.displayName ?? collaborator.email ?? "Project owner"
+  const fallbackInitial = fallbackText.charAt(0).toUpperCase()
 
   if (collaborator.avatarUrl !== null) {
     return (
@@ -448,10 +450,16 @@ function ShareDialog({
                 <ul className="divide-y divide-surface-border">
                   {collaborators.map((collaborator) => {
                     const displayName =
-                      collaborator.displayName ?? collaborator.email
-                    const isRemoving = removingEmail === collaborator.email
+                      collaborator.displayName ??
+                      collaborator.email ??
+                      "Project owner"
+                    const collaboratorEmail = collaborator.email
+                    const isRemoving = removingEmail === collaboratorEmail
                     const canRemoveCollaborator =
-                      canManage && collaborator.role === "collaborator"
+                      canManage &&
+                      collaborator.role === "collaborator" &&
+                      collaboratorEmail !== null
+                    const removeLabel = collaboratorEmail ?? displayName
 
                     return (
                       <li
@@ -464,14 +472,17 @@ function ShareDialog({
                             {displayName}
                           </p>
                           <div className="mt-0.5 flex min-w-0 items-center gap-2">
-                            <p
-                              className={cn(
-                                "truncate font-mono text-xs text-copy-muted",
-                                collaborator.displayName === null && "sr-only"
-                              )}
-                            >
-                              {collaborator.email}
-                            </p>
+                            {collaboratorEmail !== null ? (
+                              <p
+                                className={cn(
+                                  "truncate font-mono text-xs text-copy-muted",
+                                  collaborator.displayName === null &&
+                                    "sr-only"
+                                )}
+                              >
+                                {collaboratorEmail}
+                              </p>
+                            ) : null}
                             {collaborator.role === "owner" ? (
                               <span className="rounded-md border border-brand/40 bg-accent-dim px-1.5 py-0.5 text-[0.68rem] font-medium uppercase tracking-normal text-brand-strong">
                                 Owner
@@ -485,12 +496,14 @@ function ShareDialog({
                             variant="ghost"
                             size="icon-sm"
                             className="rounded-md text-state-error hover:text-state-error"
-                            aria-label={`Remove ${collaborator.email}`}
-                            title={`Remove ${collaborator.email}`}
+                            aria-label={`Remove ${removeLabel}`}
+                            title={`Remove ${removeLabel}`}
                             disabled={isRemoving}
-                            onClick={() =>
-                              removeCollaborator(collaborator.email)
-                            }
+                            onClick={() => {
+                              if (collaboratorEmail !== null) {
+                                void removeCollaborator(collaboratorEmail)
+                              }
+                            }}
                           >
                             {isRemoving ? (
                               <Loader2

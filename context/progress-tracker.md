@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 09 share dialog owner access-list fix is implemented and verified.
+- Feature 09 owner invite guard accounts for every normalized owner account email and is verified.
 
 ## Completed
 
@@ -43,6 +43,8 @@ Update this file whenever the current phase, active feature, or implementation s
 - Editor pages perform server-component auth redirects to `/sign-in`; proxy-level Clerk protection is skipped for `/editor` routes so page-level access handling can render `AccessDenied` for missing or unauthorized projects.
 - Project collaborator records remain email-only in PostgreSQL; share-dialog display names and avatars are enriched at request time from Clerk Backend API with email-only fallback.
 - Share-dialog access lists include the project owner derived from `Project.ownerId`; owners are not stored as collaborator rows.
+- Share-dialog API payloads do not expose `Project.ownerId` as a contact field; unresolved owners render with a generic owner label.
+- Share-dialog owner invite prevention compares invite emails against every normalized email address on the owner's Clerk account, with the signed-in primary email retained as a fallback.
 
 ## Session Notes
 
@@ -82,3 +84,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Started follow-up fix for Feature 09 to include the project owner in the share dialog access list.
 - Updated the collaborators API payload to include an owner row enriched from Clerk by owner user ID and marked as non-removable in the share dialog.
 - Feature 09 owner access-list fix has been verified with lint and production build.
+- Started follow-up privacy fix to avoid returning internal owner IDs in share dialog contact fields.
+- Owner rows now use `email: null` and a generic `Project owner` display fallback when Clerk cannot resolve the owner; verified with lint and production build.
+- Started follow-up fix to prevent owners from inviting alternate emails on their own Clerk account as collaborators.
+- Owner invite prevention now blocks every normalized email on the owner's Clerk account, with the signed-in primary email as a fallback; verified with lint, production build, and diff whitespace checks.

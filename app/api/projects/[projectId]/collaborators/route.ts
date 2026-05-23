@@ -1,5 +1,6 @@
 import { Prisma } from "@/app/generated/prisma/client"
 import {
+  getClerkUserEmailsById,
   getSerializedProjectAccessMembers,
   normalizeCollaboratorEmail,
   serializeProjectCollaborators,
@@ -100,6 +101,21 @@ function requireProjectOwner(access: ProjectAccess) {
   return null
 }
 
+async function getNormalizedOwnerEmails(
+  access: ProjectAccess,
+  identity: ProjectAccessIdentity
+) {
+  const ownerEmails = new Set(
+    await getClerkUserEmailsById(access.project.ownerId)
+  )
+
+  if (identity.primaryEmail !== null) {
+    ownerEmails.add(normalizeCollaboratorEmail(identity.primaryEmail))
+  }
+
+  return ownerEmails
+}
+
 export async function GET(
   _request: Request,
   { params }: ProjectCollaboratorsRouteContext
@@ -150,7 +166,12 @@ export async function POST(
     return emailResult.response
   }
 
-  if (emailResult.email === accessResult.identity.primaryEmail) {
+  const ownerEmails = await getNormalizedOwnerEmails(
+    accessResult.access,
+    accessResult.identity
+  )
+
+  if (ownerEmails.has(emailResult.email)) {
     return badRequestResponse("Project owners already have access.")
   }
 
