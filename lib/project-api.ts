@@ -219,6 +219,7 @@ function serializeProject(project: Project): ProjectJson {
 }
 
 export {
+  badRequestResponse,
   conflictResponse,
   forbiddenResponse,
   getAuthenticatedProjectUser,

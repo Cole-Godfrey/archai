@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Feature 07 (Wire Editor Home)
+- Feature 09 (Share Dialog)
 
 ## Current Goal
 
-- Feature 07 editor home API wiring is implemented and verified.
+- Feature 09 owner invite guard accounts for every normalized owner account email and is verified.
 
 ## Completed
 
@@ -19,6 +19,8 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/05-prisma.md`
 - `context/feature-specs/06-project-apis.md`
 - `context/feature-specs/07-wire-editor-home.md`
+- `context/feature-specs/08-editor-workspace-shell.md`
+- `context/feature-specs/09-share-dialog.md`
 
 ## In Progress
 
@@ -37,6 +39,12 @@ Update this file whenever the current phase, active feature, or implementation s
 - shadcn/ui is configured with generated primitives in `components/ui/*`; project-specific theming lives in `app/globals.css`.
 - Clerk public auth paths are derived from the standard `NEXT_PUBLIC_CLERK_SIGN_IN_URL` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL` env vars, with `/sign-in` and `/sign-up` as local route fallbacks.
 - Project API routes perform their own Clerk auth checks so unauthenticated API requests can return JSON `401` responses instead of `auth.protect()` API `404` responses.
+- Project workspace access checks are centralized in `lib/project-access.ts`; `/editor/[roomId]` treats room IDs as project IDs.
+- Editor pages perform server-component auth redirects to `/sign-in`; proxy-level Clerk protection is skipped for `/editor` routes so page-level access handling can render `AccessDenied` for missing or unauthorized projects.
+- Project collaborator records remain email-only in PostgreSQL; share-dialog display names and avatars are enriched at request time from Clerk Backend API with email-only fallback.
+- Share-dialog access lists include the project owner derived from `Project.ownerId`; owners are not stored as collaborator rows.
+- Share-dialog API payloads do not expose `Project.ownerId` as a contact field; unresolved owners render with a generic owner label.
+- Share-dialog owner invite prevention compares invite emails against every normalized email address on the owner's Clerk account, with the signed-in primary email retained as a fallback.
 
 ## Session Notes
 
@@ -64,3 +72,19 @@ Update this file whenever the current phase, active feature, or implementation s
 - Marked the SSL mode warning entry resolved in `context/current-issues.md`.
 - Wrapped editor home project create, rename, and delete API calls in request failure handling so fetch/read errors surface in dialogs and loading state clears without resetting successful navigation state.
 - Project action request failure handling was verified with lint and production build.
+- Started feature spec 08 editor workspace shell implementation.
+- Added server-side `/editor/[roomId]` access checks, shared project access helpers, the `AccessDenied` state, and the workspace shell placeholders for canvas and Archai assistant.
+- Moved editor route auth handling from proxy protection into editor server components so unauthenticated workspace requests redirect to `/sign-in`.
+- Feature spec 08 has been verified with lint, production build, and an unauthenticated `/editor/nonexistent` smoke check returning `307` to `/sign-in`.
+- Updated the workspace navbar AI sidebar toggle to use the same sparkles icon as the assistant chat header.
+- Started feature spec 09 share dialog implementation.
+- Added the project collaborators API route for list, invite, and remove operations with owner-only invite/remove enforcement and Clerk user enrichment for collaborator display data.
+- Added the workspace share dialog, enabled the navbar Share button, and wired owner invite/remove/copy-link controls plus collaborator read-only list rendering.
+- Feature spec 09 has been verified with lint, production build, and an unauthenticated collaborators API smoke check returning JSON `401`.
+- Started follow-up fix for Feature 09 to include the project owner in the share dialog access list.
+- Updated the collaborators API payload to include an owner row enriched from Clerk by owner user ID and marked as non-removable in the share dialog.
+- Feature 09 owner access-list fix has been verified with lint and production build.
+- Started follow-up privacy fix to avoid returning internal owner IDs in share dialog contact fields.
+- Owner rows now use `email: null` and a generic `Project owner` display fallback when Clerk cannot resolve the owner; verified with lint and production build.
+- Started follow-up fix to prevent owners from inviting alternate emails on their own Clerk account as collaborators.
+- Owner invite prevention now blocks every normalized email on the owner's Clerk account, with the signed-in primary email as a fallback; verified with lint, production build, and diff whitespace checks.

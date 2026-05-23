@@ -1,14 +1,13 @@
 import "server-only"
 
-import { currentUser } from "@clerk/nextjs/server"
-
 import type { Project } from "@/app/generated/prisma/client"
+import { getCurrentProjectIdentity } from "@/lib/project-access"
 import { prisma } from "@/lib/prisma"
 import type { EditorProject, EditorProjectLists } from "@/types/project"
 
 interface ProjectListUser {
   userId: string
-  email: string | null
+  primaryEmail: string | null
 }
 
 function emptyProjectLists(): EditorProjectLists {
@@ -63,10 +62,10 @@ function toEditorProject(
 
 async function getEditorProjectListsForUser({
   userId,
-  email,
+  primaryEmail,
 }: ProjectListUser): Promise<EditorProjectLists> {
   const sharedProjectsQuery =
-    email === null
+    primaryEmail === null
       ? Promise.resolve([])
       : prisma.project.findMany({
           where: {
@@ -76,7 +75,7 @@ async function getEditorProjectListsForUser({
             collaborators: {
               some: {
                 email: {
-                  equals: email,
+                  equals: primaryEmail,
                   mode: "insensitive",
                 },
               },
@@ -110,16 +109,13 @@ async function getEditorProjectListsForUser({
 }
 
 async function getCurrentUserProjectLists(): Promise<EditorProjectLists> {
-  const user = await currentUser()
+  const identity = await getCurrentProjectIdentity()
 
-  if (user === null) {
+  if (identity === null) {
     return emptyProjectLists()
   }
 
-  return getEditorProjectListsForUser({
-    userId: user.id,
-    email: user.primaryEmailAddress?.emailAddress.toLowerCase() ?? null,
-  })
+  return getEditorProjectListsForUser(identity)
 }
 
 export { getCurrentUserProjectLists, getEditorProjectListsForUser }

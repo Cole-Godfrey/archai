@@ -13,13 +13,21 @@ const isPublicRoute = createRouteMatcher([
   routePatternForPath(SIGN_UP_PATH),
 ])
 const isProjectApiRoute = createRouteMatcher([
-    "/api/projects",
-    "/api/projects/(.*)"
+  "/api/projects",
+  "/api/projects/(.*)",
+])
+const isEditorRoute = createRouteMatcher([
+  "/editor",
+  "/editor/(.*)",
 ])
 
 export default clerkMiddleware(
   async (auth, request) => {
-    if (!isPublicRoute(request) && !isProjectApiRoute(request)) {
+    if (
+      !isPublicRoute(request) &&
+      !isProjectApiRoute(request) &&
+      !isEditorRoute(request)
+    ) {
       await auth.protect()
     }
   },
