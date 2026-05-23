@@ -11,6 +11,7 @@ interface EditorNavbarProps {
   isSidebarOpen: boolean
   onToggleSidebar: () => void
   centerSlot?: ReactNode
+  actionSlot?: ReactNode
   className?: string
 }
 
@@ -18,6 +19,7 @@ function EditorNavbar({
   isSidebarOpen,
   onToggleSidebar,
   centerSlot,
+  actionSlot,
   className,
 }: EditorNavbarProps) {
   const SidebarIcon = isSidebarOpen ? PanelLeftClosed : PanelLeftOpen
@@ -50,7 +52,8 @@ function EditorNavbar({
         {centerSlot}
       </div>
 
-      <div className="flex flex-1 items-center justify-end">
+      <div className="flex flex-1 items-center justify-end gap-2">
+        {actionSlot}
         <UserButton />
       </div>
     </header>
