@@ -3,6 +3,7 @@ import { dark } from "@clerk/ui/themes";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SIGN_IN_URL, SIGN_UP_URL } from "@/lib/auth-routes";
+import "@xyflow/react/dist/style.css";
 import "./globals.css";
 
 const geistSans = Geist({
