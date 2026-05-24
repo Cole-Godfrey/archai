@@ -34,7 +34,6 @@ import {
   Component,
   useCallback,
   useMemo,
-  useRef,
   useState,
   type DragEvent as ReactDragEvent,
   type ReactNode,
@@ -466,7 +465,6 @@ function SyncedReactFlowCanvas() {
   const [reactFlowInstance, setReactFlowInstance] =
     useState<ReactFlowInstance<CanvasNode, CanvasEdge> | null>(null)
   const [shouldFitInitialView] = useState(() => nodes.length > 0)
-  const nodeCounterRef = useRef(0)
 
   const nodeColorById = useMemo(
     () => new Map(NODE_COLORS.map((color) => [color.id, color.fill])),
@@ -505,13 +503,15 @@ function SyncedReactFlowCanvas() {
         x: event.clientX,
         y: event.clientY,
       })
-
-      nodeCounterRef.current += 1
+      const centeredPosition = {
+        x: position.x - payload.size.width / 2,
+        y: position.y - payload.size.height / 2,
+      }
 
       const node: CanvasNode = {
-        id: `${payload.shape}-${Date.now()}-${nodeCounterRef.current}`,
+        id: `${payload.shape}-${crypto.randomUUID()}`,
         type: CANVAS_NODE_TYPE,
-        position,
+        position: centeredPosition,
         width: payload.size.width,
         height: payload.size.height,
         data: {

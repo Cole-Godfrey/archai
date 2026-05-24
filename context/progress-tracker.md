@@ -110,3 +110,5 @@ Update this file whenever the current phase, active feature, or implementation s
 - Removed visible button boxes from the shape panel controls and changed shape dragging to use an icon-only drag preview; verified with lint and production build.
 - Restored shape control chrome for hover and active drag states, switched the drag preview to a chromed button preview, reduced default dropped shape sizes, and enlarged the canvas dot grid spacing; verified with lint and production build.
 - Prevented empty rooms from auto-centering on the first manually dropped shape while retaining initial fit behavior for rooms that already load with nodes; verified with lint and production build.
+- Changed dropped node ID generation from timestamp plus local counter to shape-prefixed `crypto.randomUUID()` IDs to avoid multi-user collisions; verified with lint and production build.
+- Adjusted dropped shape placement so the shape center lands on the cursor instead of placing the cursor at the node's top-left corner; verified with lint and production build.
