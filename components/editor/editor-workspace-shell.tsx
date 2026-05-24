@@ -6,6 +6,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 
+import { BaseCanvas } from "@/components/editor/base-canvas"
 import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectDialogues } from "@/components/editor/project-dialogues"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
@@ -126,20 +127,7 @@ function EditorWorkspaceShell({
         }
       />
       <main className="relative flex min-h-0 flex-1 overflow-hidden bg-canvas">
-        <section className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-canvas px-6 text-center">
-          <div className="absolute inset-0 bg-[linear-gradient(var(--grid-line)_1px,transparent_1px),linear-gradient(90deg,var(--grid-line)_1px,transparent_1px)] bg-[size:32px_32px]" />
-          <div className="relative max-w-sm">
-            <p className="font-mono text-xs uppercase tracking-normal text-brand">
-              /{currentProject.roomId}
-            </p>
-            <h1 className="mt-3 text-xl font-medium text-copy-primary">
-              Canvas placeholder
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-copy-muted">
-              The collaborative architecture canvas will render here.
-            </p>
-          </div>
-        </section>
+        <BaseCanvas roomId={currentProject.roomId} />
 
         {isAssistantOpen ? (
           <aside className="fixed bottom-4 right-4 top-[4.5rem] z-30 flex w-80 max-w-[calc(100vw-2rem)] shrink-0 flex-col overflow-hidden rounded-lg border border-surface-border bg-surface-glass shadow-xl backdrop-blur-md md:static md:z-auto md:max-w-none md:rounded-none md:border-y-0 md:border-r-0 md:bg-surface md:shadow-none md:backdrop-blur-none">

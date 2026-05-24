@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Feature 09 (Share Dialog)
+- Feature 12 (Shape Panel)
 
 ## Current Goal
 
-- Feature 09 owner invite guard accounts for every normalized owner account email and is verified.
+- Feature 12 shape panel is implemented and verified.
 
 ## Completed
 
@@ -21,6 +21,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/07-wire-editor-home.md`
 - `context/feature-specs/08-editor-workspace-shell.md`
 - `context/feature-specs/09-share-dialog.md`
+- `context/feature-specs/10-liveblocks-setup.md`
+- `context/feature-specs/11-base-canvas.md`
+- `context/feature-specs/12-shape-panel.md`
 
 ## In Progress
 
@@ -45,6 +48,8 @@ Update this file whenever the current phase, active feature, or implementation s
 - Share-dialog access lists include the project owner derived from `Project.ownerId`; owners are not stored as collaborator rows.
 - Share-dialog API payloads do not expose `Project.ownerId` as a contact field; unresolved owners render with a generic owner label.
 - Share-dialog owner invite prevention compares invite emails against every normalized email address on the owner's Clerk account, with the signed-in primary email retained as a fallback.
+- Liveblocks auth uses private project rooms and issues room-scoped access tokens only after Clerk authentication and project membership verification.
+- Liveblocks user metadata uses Clerk display data plus a deterministic Archai cursor color derived from the Clerk user ID.
 
 ## Session Notes
 
@@ -88,3 +93,20 @@ Update this file whenever the current phase, active feature, or implementation s
 - Owner rows now use `email: null` and a generic `Project owner` display fallback when Clerk cannot resolve the owner; verified with lint and production build.
 - Started follow-up fix to prevent owners from inviting alternate emails on their own Clerk account as collaborators.
 - Owner invite prevention now blocks every normalized email on the owner's Clerk account, with the signed-in primary email as a fallback; verified with lint, production build, and diff whitespace checks.
+- Started feature spec 10 Liveblocks setup implementation.
+- Added the Liveblocks global type config for cursor presence, thinking state, and user metadata.
+- Added the cached Liveblocks node client, deterministic cursor color helper, and Clerk-protected `/api/liveblocks-auth` route.
+- Added the missing `@liveblocks/node` dependency required by the auth route.
+- Feature spec 10 has been verified with lint and production build.
+- Started feature spec 11 base canvas implementation.
+- Added shared canvas node/edge types, Liveblocks storage typing, and a Liveblocks-backed React Flow canvas wrapper.
+- Replaced the workspace canvas placeholder with the base collaborative canvas.
+- Feature spec 11 has been verified with lint and production build.
+- Started feature spec 12 shape panel implementation.
+- Added the bottom floating shape panel with draggable shape icon buttons and typed drag payloads containing shape and default size data.
+- Added canvas dragover/drop handling that converts screen coordinates through React Flow and creates Liveblocks-synced `canvasNode` nodes with generated shape/timestamp/counter IDs.
+- Added the basic custom `canvasNode` renderer so newly dropped nodes are visible as bordered rectangles with centered labels.
+- Feature spec 12 has been verified with production build and lint.
+- Removed visible button boxes from the shape panel controls and changed shape dragging to use an icon-only drag preview; verified with lint and production build.
+- Restored shape control chrome for hover and active drag states, switched the drag preview to a chromed button preview, reduced default dropped shape sizes, and enlarged the canvas dot grid spacing; verified with lint and production build.
+- Prevented empty rooms from auto-centering on the first manually dropped shape while retaining initial fit behavior for rooms that already load with nodes; verified with lint and production build.
