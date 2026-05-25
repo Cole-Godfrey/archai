@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Feature 12 (Shape Panel)
+- Feature 18 (Starter Templates)
 
 ## Current Goal
 
-- Feature 12 shape panel is implemented and verified.
+- Feature 18 starter template import is implemented and verified.
 
 ## Completed
 
@@ -24,6 +24,12 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/10-liveblocks-setup.md`
 - `context/feature-specs/11-base-canvas.md`
 - `context/feature-specs/12-shape-panel.md`
+- `context/feature-specs/13-node-shape.md`
+- `context/feature-specs/14-node-editing.md`
+- `context/feature-specs/15-nodes-color-toolbar.md`
+- `context/feature-specs/16-edge-behavior.md`
+- `context/feature-specs/17-canvas-ergonomics.md`
+- `context/feature-specs/18-starter-template.md`
 
 ## In Progress
 
@@ -53,6 +59,36 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Session Notes
 
+- Cleaned up cylinder SVG rendering by removing the redundant faded top-rim path and duplicate bottom arc from canvas and starter-preview shapes.
+- Moved the CI/CD artifact-to-deploy edge to enter the deploy gate from the top so the release edge no longer visually reads as bidirectional.
+- Removed text labels from starter template SVG previews, switched template replacement to Liveblocks `onDelete` clearing, and adjusted the CI/CD metrics edge to avoid the deploy gate; verified with lint and production build.
+- Feature spec 18 has been verified with lint and production build.
+- Added the starter template catalog, preview modal, navbar entry point, and collaborative canvas replace/import path.
+- Started feature spec 18 starter template implementation.
+- Moved the feature 17 canvas control bar down to align with the shape panel baseline.
+- Feature spec 17 has been verified with lint, TypeScript, and production build.
+- Added the bottom-left canvas control bar, React Flow zoom controls, Liveblocks undo/redo controls, feature 17 keyboard shortcuts, and removed the minimap.
+- Started feature spec 17 canvas ergonomics implementation.
+- Feature spec 16 has been verified with lint and production build.
+- Added the custom canvas edge renderer with right-angle routing, dim/active states, wider invisible interaction paths, inline label badges, and label editing through the collaborative edge update path.
+- Started feature spec 16 edge behavior implementation.
+- Canvas edge endpoint gap tuning has been verified with lint and production build.
+- Tuned canvas edge endpoints to preserve a small fixed gap between arrowheads and node shapes.
+- Canvas edge arrow spacing adjustment has been verified with lint and production build.
+- Adjusted canvas node handle placement to bring edge arrows closer to large visible shape boundaries.
+- Started a follow-up canvas edge arrow spacing adjustment for large shapes.
+- Feature spec 15 has been verified with lint and production build.
+- Added the selected-node color toolbar and collaborative node color update path for feature spec 15.
+- Started feature spec 15 node color toolbar implementation.
+- Started feature spec 14 node editing implementation.
+- Added selected-node resize handles with minimum node dimensions, backed by the existing React Flow and Liveblocks node change path.
+- Added centered inline node label editing with a textarea overlay, live label updates through the collaborative node state, and blur/Escape editing close behavior.
+- Feature spec 14 has been verified with lint and production build.
+- Enlarged canvas node connection handles and added Enter-to-close label editing while preserving Shift+Enter newlines.
+- Changed canvas node connection handles to scale from each node's rendered dimensions with a larger minimum target size.
+- Reduced the scaled canvas node connection handle curve to avoid oversized handles on default and resized nodes.
+- Tightened the scaled canvas node connection handle range again for smaller default handles with modest growth on larger nodes.
+- Raised canvas node connection handles above node label and shape layers so clicks on visible handles start edge interactions reliably.
 - Started feature spec 06 backend project API route implementation.
 - Added backend REST routes for project list, create, rename, and delete, with owner-scoped Prisma mutations.
 - Feature spec 06 has been verified with lint, production build, and an unauthenticated API smoke check returning JSON `401`.
@@ -112,3 +148,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Prevented empty rooms from auto-centering on the first manually dropped shape while retaining initial fit behavior for rooms that already load with nodes; verified with lint and production build.
 - Changed dropped node ID generation from timestamp plus local counter to shape-prefixed `crypto.randomUUID()` IDs to avoid multi-user collisions; verified with lint and production build.
 - Adjusted dropped shape placement so the shape center lands on the cursor instead of placing the cursor at the node's top-left corner; verified with lint and production build.
+- Started feature spec 13 node shape implementation.
+- Replaced the placeholder node renderer with shape-aware CSS/SVG rendering and added a custom shape ghost preview for shape-panel drags.
+- Feature spec 13 has been verified with lint and production build.
+- Enlarged React Flow connection handles on canvas nodes to make edge creation easier to target.

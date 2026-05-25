@@ -1,16 +1,19 @@
 "use client"
 
 import {
+  LayoutTemplate,
   Share2,
   Sparkles,
 } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 import { BaseCanvas } from "@/components/editor/base-canvas"
 import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectDialogues } from "@/components/editor/project-dialogues"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { ShareDialog } from "@/components/editor/share-dialog"
+import type { CanvasTemplate } from "@/components/editor/starter-templates"
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal"
 import { Button } from "@/components/ui/button"
 import { useProjectActions } from "@/hooks/use-project-actions"
 import { cn } from "@/lib/utils"
@@ -48,6 +51,12 @@ function EditorWorkspaceShell({
   const [isProjectSidebarOpen, setIsProjectSidebarOpen] = useState(true)
   const [isAssistantOpen, setIsAssistantOpen] = useState(true)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
+  const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false)
+  const [templateImportRequest, setTemplateImportRequest] = useState<{
+    requestId: number
+    template: CanvasTemplate
+  } | null>(null)
+  const templateImportRequestId = useRef(0)
   const projectActions = useProjectActions({
     activeProjectId: currentProject.id,
     ownedProjects,
@@ -57,6 +66,14 @@ function EditorWorkspaceShell({
     ? "Close Archai assistant"
     : "Open Archai assistant"
 
+  function importTemplate(template: CanvasTemplate) {
+    templateImportRequestId.current += 1
+    setTemplateImportRequest({
+      requestId: templateImportRequestId.current,
+      template,
+    })
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-copy-primary">
       <EditorNavbar
@@ -64,6 +81,27 @@ function EditorWorkspaceShell({
         centerSlot={<WorkspaceProjectTitle project={currentProject} />}
         actionSlot={
           <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="hidden rounded-md border-surface-border bg-elevated text-copy-secondary sm:inline-flex"
+              onClick={() => setIsTemplatesModalOpen(true)}
+            >
+              <LayoutTemplate className="h-4 w-4" aria-hidden="true" />
+              Templates
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="rounded-md border-surface-border bg-elevated text-copy-secondary sm:hidden"
+              aria-label="Open starter templates"
+              title="Open starter templates"
+              onClick={() => setIsTemplatesModalOpen(true)}
+            >
+              <LayoutTemplate className="h-4 w-4" aria-hidden="true" />
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -127,7 +165,10 @@ function EditorWorkspaceShell({
         }
       />
       <main className="relative flex min-h-0 flex-1 overflow-hidden bg-canvas">
-        <BaseCanvas roomId={currentProject.roomId} />
+        <BaseCanvas
+          roomId={currentProject.roomId}
+          templateImportRequest={templateImportRequest}
+        />
 
         {isAssistantOpen ? (
           <aside className="fixed bottom-4 right-4 top-[4.5rem] z-30 flex w-80 max-w-[calc(100vw-2rem)] shrink-0 flex-col overflow-hidden rounded-lg border border-surface-border bg-surface-glass shadow-xl backdrop-blur-md md:static md:z-auto md:max-w-none md:rounded-none md:border-y-0 md:border-r-0 md:bg-surface md:shadow-none md:backdrop-blur-none">
@@ -162,6 +203,11 @@ function EditorWorkspaceShell({
         projectName={currentProject.name}
         canManageAccess={currentProject.role === "owner"}
         onOpenChange={setIsShareDialogOpen}
+      />
+      <StarterTemplatesModal
+        open={isTemplatesModalOpen}
+        onImport={importTemplate}
+        onOpenChange={setIsTemplatesModalOpen}
       />
       <ProjectDialogues actions={projectActions} />
     </div>
