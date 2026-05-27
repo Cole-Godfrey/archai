@@ -38,6 +38,12 @@ interface CanvasEdgeData extends Record<string, unknown> {
 
 type CanvasNode = Node<CanvasNodeData, typeof CANVAS_NODE_TYPE>
 type CanvasEdge = Edge<CanvasEdgeData, typeof CANVAS_EDGE_TYPE>
+type CanvasSaveStatus = "idle" | "saving" | "saved" | "error"
+
+interface CanvasSnapshot {
+  nodes: CanvasNode[]
+  edges: CanvasEdge[]
+}
 
 export {
   CANVAS_EDGE_TYPE,
@@ -50,4 +56,6 @@ export {
   type CanvasNodeColorId,
   type CanvasNodeData,
   type CanvasNodeShape,
+  type CanvasSaveStatus,
+  type CanvasSnapshot,
 }

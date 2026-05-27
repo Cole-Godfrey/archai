@@ -1,12 +1,17 @@
 "use client"
 
 import {
+  CheckCircle2,
   LayoutTemplate,
+  LoaderCircle,
+  Save as SaveIcon,
   Share2,
   Sparkles,
+  TriangleAlert,
 } from "lucide-react"
-import { useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 
+import { AISidebar } from "@/components/editor/ai-sidebar"
 import { BaseCanvas } from "@/components/editor/base-canvas"
 import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectDialogues } from "@/components/editor/project-dialogues"
@@ -17,6 +22,7 @@ import { StarterTemplatesModal } from "@/components/editor/starter-templates-mod
 import { Button } from "@/components/ui/button"
 import { useProjectActions } from "@/hooks/use-project-actions"
 import { cn } from "@/lib/utils"
+import type { CanvasSaveStatus } from "@/types/canvas"
 import type { EditorProject, EditorProjectLists } from "@/types/project"
 
 interface WorkspaceProject {
@@ -28,6 +34,90 @@ interface WorkspaceProject {
 
 interface EditorWorkspaceShellProps extends EditorProjectLists {
   currentProject: WorkspaceProject
+}
+
+interface CanvasSaveButtonProps {
+  onSave: (() => void) | null
+  status: CanvasSaveStatus
+}
+
+function CanvasSaveButton({ onSave, status }: CanvasSaveButtonProps) {
+  const config =
+    status === "saving"
+      ? {
+          Icon: LoaderCircle,
+          label: "Saving...",
+          title: "Saving canvas",
+          className: "text-brand",
+          iconClassName: "animate-spin",
+        }
+        : status === "error"
+          ? {
+              Icon: TriangleAlert,
+              label: "Error",
+              title: "Canvas save error",
+              className: "border-state-error/60 text-state-error",
+              iconClassName: "",
+            }
+          : status === "saved"
+            ? {
+                Icon: CheckCircle2,
+                label: "Saved",
+                title: "Canvas saved",
+                className: "text-state-success",
+                iconClassName: "",
+              }
+            : {
+                Icon: SaveIcon,
+                label: "Save",
+                title: "Save canvas",
+                className: "text-copy-secondary",
+                iconClassName: "",
+              }
+  const Icon = config.Icon
+  const isDisabled = onSave === null || status === "saving"
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={cn(
+          "hidden rounded-md border-surface-border bg-elevated sm:inline-flex",
+          config.className
+        )}
+        aria-label={config.title}
+        disabled={isDisabled}
+        title={config.title}
+        onClick={() => onSave?.()}
+      >
+        <Icon
+          className={cn("h-4 w-4", config.iconClassName)}
+          aria-hidden="true"
+        />
+        {config.label}
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className={cn(
+          "rounded-md border-surface-border bg-elevated sm:hidden",
+          config.className
+        )}
+        aria-label={config.title}
+        disabled={isDisabled}
+        title={config.title}
+        onClick={() => onSave?.()}
+      >
+        <Icon
+          className={cn("h-4 w-4", config.iconClassName)}
+          aria-hidden="true"
+        />
+      </Button>
+    </>
+  )
 }
 
 function WorkspaceProjectTitle({ project }: { project: WorkspaceProject }) {
@@ -48,6 +138,9 @@ function EditorWorkspaceShell({
   ownedProjects,
   sharedProjects,
 }: EditorWorkspaceShellProps) {
+  const [canvasSaveStatus, setCanvasSaveStatus] =
+    useState<CanvasSaveStatus>("idle")
+  const [saveCanvasNow, setSaveCanvasNow] = useState<(() => void) | null>(null)
   const [isProjectSidebarOpen, setIsProjectSidebarOpen] = useState(true)
   const [isAssistantOpen, setIsAssistantOpen] = useState(true)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
@@ -66,6 +159,13 @@ function EditorWorkspaceShell({
     ? "Close Archai assistant"
     : "Open Archai assistant"
 
+  const handleManualSaveChange = useCallback(
+    (saveCanvas: (() => void) | null) => {
+      setSaveCanvasNow(() => saveCanvas)
+    },
+    []
+  )
+
   function importTemplate(template: CanvasTemplate) {
     templateImportRequestId.current += 1
     setTemplateImportRequest({
@@ -81,6 +181,10 @@ function EditorWorkspaceShell({
         centerSlot={<WorkspaceProjectTitle project={currentProject} />}
         actionSlot={
           <>
+            <CanvasSaveButton
+              onSave={saveCanvasNow}
+              status={canvasSaveStatus}
+            />
             <Button
               type="button"
               variant="outline"
@@ -163,28 +267,21 @@ function EditorWorkspaceShell({
         onToggleSidebar={() =>
           setIsProjectSidebarOpen((isOpen) => !isOpen)
         }
+        showUserButton={false}
       />
       <main className="relative flex min-h-0 flex-1 overflow-hidden bg-canvas">
         <BaseCanvas
+          onManualSaveChange={handleManualSaveChange}
+          onSaveStatusChange={setCanvasSaveStatus}
+          projectId={currentProject.id}
           roomId={currentProject.roomId}
           templateImportRequest={templateImportRequest}
         />
 
-        {isAssistantOpen ? (
-          <aside className="fixed bottom-4 right-4 top-[4.5rem] z-30 flex w-80 max-w-[calc(100vw-2rem)] shrink-0 flex-col overflow-hidden rounded-lg border border-surface-border bg-surface-glass shadow-xl backdrop-blur-md md:static md:z-auto md:max-w-none md:rounded-none md:border-y-0 md:border-r-0 md:bg-surface md:shadow-none md:backdrop-blur-none">
-            <div className="flex h-14 items-center gap-2 border-b border-surface-border px-4">
-              <Sparkles className="h-4 w-4 text-ai-text" aria-hidden="true" />
-              <h2 className="text-sm font-medium text-copy-primary">
-                Archai Assistant
-              </h2>
-            </div>
-            <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center">
-              <p className="text-sm leading-6 text-copy-muted">
-                AI chat placeholder
-              </p>
-            </div>
-          </aside>
-        ) : null}
+        <AISidebar
+          isOpen={isAssistantOpen}
+          onClose={() => setIsAssistantOpen(false)}
+        />
 
         <ProjectSidebar
           isOpen={isProjectSidebarOpen}

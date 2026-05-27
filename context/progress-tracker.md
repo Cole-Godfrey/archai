@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Feature 18 (Starter Templates)
+- Feature 21 (Canvas Autosave)
 
 ## Current Goal
 
-- Feature 18 starter template import is implemented and verified.
+- Feature 21 canvas autosave follow-up fixes are implemented and verified.
 
 ## Completed
 
@@ -30,6 +30,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - `context/feature-specs/16-edge-behavior.md`
 - `context/feature-specs/17-canvas-ergonomics.md`
 - `context/feature-specs/18-starter-template.md`
+- `context/feature-specs/19-presence-avatars-cursor.md`
+- `context/feature-specs/20-ai-sidebar-shell.md`
+- `context/feature-specs/21-canvas-autosave.md`
 
 ## In Progress
 
@@ -56,9 +59,27 @@ Update this file whenever the current phase, active feature, or implementation s
 - Share-dialog owner invite prevention compares invite emails against every normalized email address on the owner's Clerk account, with the signed-in primary email retained as a fallback.
 - Liveblocks auth uses private project rooms and issues room-scoped access tokens only after Clerk authentication and project membership verification.
 - Liveblocks user metadata uses Clerk display data plus a deterministic Archai cursor color derived from the Clerk user ID.
+- Canvas autosave stores private Vercel Blob JSON at `canvas/{projectId}.json`, stores the returned URL in `Project.canvasJsonPath`, and loads saved snapshots only when the Liveblocks room has no active nodes or edges.
 
 ## Session Notes
 
+- Removed the Clerk `UserButton` from the workspace navbar by adding a default-on `showUserButton` option to the shared editor navbar and disabling it only in the workspace shell; verified with lint and production build.
+- Increased the default canvas autosave debounce from 1.2 seconds to 6 seconds so manual Save remains useful between automatic writes.
+- Fixed the current canvas autosave follow-up by moving `use-canvas-autosave.ts` into `hooks/`, wiring the workspace Save button to the hook's manual save action, and marking the issue pending test after lint and production build passed.
+- Feature spec 21 has been verified with lint and production build.
+- Updated the project overview to document Vercel Blob canvas snapshot persistence instead of filesystem persistence.
+- Added the Vercel Blob canvas save/load API, shared canvas snapshot validation, a debounced autosave hook, empty-room saved canvas loading, and a navbar save status indicator for feature spec 21.
+- Started feature spec 21 canvas autosave implementation; existing Prisma project metadata already includes `canvasJsonPath`.
+- Updated the feature 20 AI sidebar follow-up: matched the project sidebar glass surface, changed the subtitle to `Collaborate with Archai`, and auto-scrolls the chat to newly sent messages.
+- Feature spec 20 has been verified with lint and production build.
+- Added the floating AI sidebar component with AI Architect and Specs tabs, starter prompt chips, local chat shell interactions, auto-resizing prompt input, and a static demo spec card.
+- Started feature spec 20 AI sidebar shell implementation.
+- Feature 19 cursor follow-up has been verified with lint and production build.
+- Fixed feature 19 cursor follow-up by broadcasting through React Flow pane pointer events and rendering remote cursors through the viewport portal.
+- Feature spec 19 has been verified with lint and production build.
+- Updated the Liveblocks presence type to the feature 19 `thinking` boolean and initialized room presence with `cursor: null`.
+- Added the canvas-only participant avatar group, Clerk self UserButton, Liveblocks collaborator filtering, and flow-coordinate live cursor broadcasting for feature spec 19.
+- Started feature spec 19 presence avatars and cursor implementation.
 - Cleaned up cylinder SVG rendering by removing the redundant faded top-rim path and duplicate bottom arc from canvas and starter-preview shapes.
 - Moved the CI/CD artifact-to-deploy edge to enter the deploy gate from the top so the release edge no longer visually reads as bidirectional.
 - Removed text labels from starter template SVG previews, switched template replacement to Liveblocks `onDelete` clearing, and adjusted the CI/CD metrics edge to avoid the deploy gate; verified with lint and production build.
