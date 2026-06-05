@@ -1,5 +1,6 @@
 "use client"
 
+import { LiveblocksProvider, RoomProvider } from "@liveblocks/react"
 import {
   CheckCircle2,
   LayoutTemplate,
@@ -141,6 +142,9 @@ function EditorWorkspaceShell({
   const [canvasSaveStatus, setCanvasSaveStatus] =
     useState<CanvasSaveStatus>("idle")
   const [saveCanvasNow, setSaveCanvasNow] = useState<(() => void) | null>(null)
+  const [getViewportCenter, setGetViewportCenter] = useState<
+    (() => { x: number; y: number } | null) | null
+  >(null)
   const [isProjectSidebarOpen, setIsProjectSidebarOpen] = useState(true)
   const [isAssistantOpen, setIsAssistantOpen] = useState(true)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
@@ -162,6 +166,13 @@ function EditorWorkspaceShell({
   const handleManualSaveChange = useCallback(
     (saveCanvas: (() => void) | null) => {
       setSaveCanvasNow(() => saveCanvas)
+    },
+    []
+  )
+
+  const handleViewportReady = useCallback(
+    (getCenter: (() => { x: number; y: number } | null) | null) => {
+      setGetViewportCenter(() => getCenter)
     },
     []
   )
@@ -270,29 +281,43 @@ function EditorWorkspaceShell({
         showUserButton={false}
       />
       <main className="relative flex min-h-0 flex-1 overflow-hidden bg-canvas">
-        <BaseCanvas
-          onManualSaveChange={handleManualSaveChange}
-          onSaveStatusChange={setCanvasSaveStatus}
-          projectId={currentProject.id}
-          roomId={currentProject.roomId}
-          templateImportRequest={templateImportRequest}
-        />
+        <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
+          <RoomProvider
+            id={currentProject.roomId}
+            initialPresence={{
+              cursor: null,
+              thinking: false,
+              aiActivity: null,
+            }}
+          >
+            <BaseCanvas
+              onManualSaveChange={handleManualSaveChange}
+              onSaveStatusChange={setCanvasSaveStatus}
+              onViewportReady={handleViewportReady}
+              projectId={currentProject.id}
+              templateImportRequest={templateImportRequest}
+            />
 
-        <AISidebar
-          isOpen={isAssistantOpen}
-          onClose={() => setIsAssistantOpen(false)}
-        />
+            <AISidebar
+              isOpen={isAssistantOpen}
+              onClose={() => setIsAssistantOpen(false)}
+              roomId={currentProject.roomId}
+              projectId={currentProject.id}
+              getViewportCenter={getViewportCenter}
+            />
 
-        <ProjectSidebar
-          isOpen={isProjectSidebarOpen}
-          activeProjectId={currentProject.id}
-          ownedProjects={ownedProjects}
-          sharedProjects={sharedProjects}
-          onClose={() => setIsProjectSidebarOpen(false)}
-          onCreateProject={projectActions.openCreateDialog}
-          onRenameProject={projectActions.openRenameDialog}
-          onDeleteProject={projectActions.openDeleteDialog}
-        />
+            <ProjectSidebar
+              isOpen={isProjectSidebarOpen}
+              activeProjectId={currentProject.id}
+              ownedProjects={ownedProjects}
+              sharedProjects={sharedProjects}
+              onClose={() => setIsProjectSidebarOpen(false)}
+              onCreateProject={projectActions.openCreateDialog}
+              onRenameProject={projectActions.openRenameDialog}
+              onDeleteProject={projectActions.openDeleteDialog}
+            />
+          </RoomProvider>
+        </LiveblocksProvider>
       </main>
       <ShareDialog
         open={isShareDialogOpen}

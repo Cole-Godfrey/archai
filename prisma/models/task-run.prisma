@@ -1,0 +1,11 @@
+// Tracks Trigger.dev background runs so the API can verify run ownership
+// before issuing run-scoped public tokens. See context/architecture-context.md
+// (task run records are first-class relational data in PostgreSQL).
+model TaskRun {
+  runId     String   @unique
+  projectId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@index([userId, projectId])
+}

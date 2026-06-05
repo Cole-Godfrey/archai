@@ -1,7 +1,11 @@
 import type { User } from "@clerk/backend"
 import { auth, currentUser } from "@clerk/nextjs/server"
 
-import { getLiveblocksClient, getLiveblocksUserColor } from "@/lib/liveblocks"
+import {
+  ensureRoomFeeds,
+  getLiveblocksClient,
+  getLiveblocksUserColor,
+} from "@/lib/liveblocks"
 import {
   badRequestResponse,
   forbiddenResponse,
@@ -108,6 +112,10 @@ export async function POST(request: Request) {
     },
   })
 
+  // Provision the room's shared AI feeds before the client connects, since
+  // Liveblocks rejects messages posted to a feed that was never created.
+  await ensureRoomFeeds(access.project.id)
+
   const session = liveblocks.prepareSession(userId, {
     userInfo: {
       name: getDisplayName(user),
@@ -116,7 +124,9 @@ export async function POST(request: Request) {
     },
   })
 
-  session.allow(access.project.id, session.FULL_ACCESS)
+  // FULL_ACCESS only covers room storage and comments, so grant feeds:write as
+  // well to let authorized members read and write the shared `ai-status-feed`.
+  session.allow(access.project.id, [...session.FULL_ACCESS, "feeds:write"])
 
   const { body, status } = await session.authorize()
 

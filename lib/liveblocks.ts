@@ -2,6 +2,8 @@ import "server-only"
 
 import { Liveblocks } from "@liveblocks/node"
 
+import { AI_CHAT_FEED_ID, AI_STATUS_FEED_ID } from "@/types/tasks"
+
 const CURSOR_COLORS = [
   "#D6B56D",
   "#38D7BD",
@@ -37,6 +39,46 @@ function getLiveblocksClient() {
   return liveblocks
 }
 
+/** Room-scoped feeds the AI sidebar reads and writes. */
+const ROOM_FEED_IDS = [AI_STATUS_FEED_ID, AI_CHAT_FEED_ID] as const
+
+/**
+ * Ensures the room's shared AI feeds exist. Liveblocks does not create a feed
+ * implicitly — posting a message to a feed that has never been created fails —
+ * so the feeds the sidebar reads and writes (`ai-status-feed`, `ai-chat`) must
+ * be provisioned explicitly. Idempotent (skips feeds that already exist) and
+ * best-effort (never throws), so it can run during room setup in the auth route
+ * without blocking authorization. Runs once per room connection, not per
+ * message, so the extra request is negligible.
+ */
+async function ensureRoomFeeds(roomId: string): Promise<void> {
+  const liveblocks = getLiveblocksClient()
+
+  let existingFeedIds: Set<string>
+
+  try {
+    const { data } = await liveblocks.getFeeds({ roomId })
+    existingFeedIds = new Set(data.map((feed) => feed.feedId))
+  } catch {
+    // Treat an unreadable feed list as "none exist" and attempt creation; a
+    // duplicate create is caught below.
+    existingFeedIds = new Set()
+  }
+
+  for (const feedId of ROOM_FEED_IDS) {
+    if (existingFeedIds.has(feedId)) {
+      continue
+    }
+
+    try {
+      await liveblocks.createFeed({ roomId, feedId })
+    } catch {
+      // A concurrent connection may have created it first, or the call was
+      // transient; the read/write path surfaces any persistent problem.
+    }
+  }
+}
+
 function getLiveblocksUserColor(userId: string) {
   let hash = 0
 
@@ -47,4 +89,4 @@ function getLiveblocksUserColor(userId: string) {
   return CURSOR_COLORS[hash % CURSOR_COLORS.length]
 }
 
-export { getLiveblocksClient, getLiveblocksUserColor }
+export { ensureRoomFeeds, getLiveblocksClient, getLiveblocksUserColor }

@@ -3,8 +3,6 @@
 import { UserButton, useAuth } from "@clerk/nextjs"
 import {
   ClientSideSuspense,
-  LiveblocksProvider,
-  RoomProvider,
   shallow,
   useCanRedo,
   useCanUndo,
@@ -20,6 +18,7 @@ import {
   Cylinder,
   Diamond,
   Hexagon,
+  LoaderCircle,
   Pill,
   Redo2,
   RectangleHorizontal,
@@ -76,6 +75,7 @@ import { useCanvasAutosave } from "@/hooks/use-canvas-autosave"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { parseCanvasSnapshot } from "@/lib/canvas-snapshot"
 import { cn } from "@/lib/utils"
+import { isActiveAiPhase, type AiAgentActivity } from "@/types/ai-design"
 import {
   CANVAS_EDGE_TYPE,
   CANVAS_NODE_TYPE,
@@ -91,8 +91,10 @@ import {
 interface BaseCanvasProps {
   onManualSaveChange?: (saveCanvas: (() => void) | null) => void
   onSaveStatusChange?: (status: CanvasSaveStatus) => void
+  onViewportReady?: (
+    getViewportCenter: (() => { x: number; y: number } | null) | null
+  ) => void
   projectId: string
-  roomId: string
   templateImportRequest?: CanvasTemplateImportRequest | null
 }
 
@@ -192,6 +194,7 @@ interface CursorParticipant {
   } | null
   id: string
   name: string
+  thinking: boolean
 }
 
 interface LiveCursorProps {
@@ -201,6 +204,7 @@ interface LiveCursorProps {
     x: number
     y: number
   }
+  thinking: boolean
 }
 
 interface LiveCursorsProps {
@@ -214,6 +218,9 @@ interface ParticipantAvatarGroupProps {
 interface SyncedReactFlowCanvasProps {
   onManualSaveChange?: (saveCanvas: (() => void) | null) => void
   onSaveStatusChange?: (status: CanvasSaveStatus) => void
+  onViewportReady?: (
+    getViewportCenter: (() => { x: number; y: number } | null) | null
+  ) => void
   projectId: string
   templateImportRequest?: CanvasTemplateImportRequest | null
 }
@@ -1593,7 +1600,7 @@ function ParticipantAvatarGroup({
   )
 }
 
-function LiveCursor({ color, name, position }: LiveCursorProps) {
+function LiveCursor({ color, name, position, thinking }: LiveCursorProps) {
   return (
     <div
       className="absolute left-0 top-0 flex items-start gap-1"
@@ -1615,14 +1622,20 @@ function LiveCursor({ color, name, position }: LiveCursorProps) {
         />
       </svg>
       <span
-        className="mt-3 max-w-40 truncate rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none shadow-lg"
+        className="mt-3 flex max-w-40 items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none shadow-lg"
         style={{
           backgroundColor: color,
           borderColor: color,
           color: getReadableTextColor(color),
         }}
       >
-        {name}
+        {thinking && (
+          <LoaderCircle
+            className="h-2.5 w-2.5 shrink-0 animate-spin"
+            aria-hidden="true"
+          />
+        )}
+        <span className="truncate">{name}</span>
       </span>
     </div>
   )
@@ -1638,6 +1651,7 @@ function LiveCursors({
       cursor: other.presence.cursor,
       id: other.id,
       name: other.info.name,
+      thinking: other.presence.thinking,
     }),
     shallow
   )
@@ -1665,6 +1679,7 @@ function LiveCursors({
               color={participant.color}
               name={participant.name}
               position={{ x: 0, y: 0 }}
+              thinking={participant.thinking}
             />
           </div>
         )
@@ -1673,9 +1688,57 @@ function LiveCursors({
   )
 }
 
+function AiAgentStatus() {
+  const agentEntries = useOthersMapped(
+    (other): { activity: AiAgentActivity | null; color: string; name: string } => ({
+      activity: other.presence.aiActivity,
+      color: other.info.color,
+      name: other.info.name,
+    }),
+    shallow
+  )
+  const activeEntry = agentEntries.find(([, entry]) => entry.activity !== null)
+  const activity = activeEntry?.[1].activity ?? null
+
+  if (activeEntry === undefined || activity === null) {
+    return null
+  }
+
+  const agent = activeEntry[1]
+  const isError = activity.phase === "error"
+  const isWorking = isActiveAiPhase(activity.phase)
+  const dotColor = isError ? "var(--state-error)" : agent.color
+
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-5 z-50 flex -translate-x-1/2 justify-center px-4">
+      <div className="flex max-w-[min(80vw,28rem)] items-center gap-2 rounded-full border border-surface-border bg-surface-glass px-3 py-1.5 shadow-xl backdrop-blur-md">
+        <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+          {isWorking && (
+            <span
+              className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+              style={{ backgroundColor: dotColor }}
+            />
+          )}
+          <span
+            className="relative inline-flex h-2 w-2 rounded-full"
+            style={{ backgroundColor: dotColor }}
+          />
+        </span>
+        <span className="shrink-0 font-mono text-[11px] font-medium leading-none tracking-normal text-ai-text">
+          {agent.name}
+        </span>
+        <span className="truncate text-xs leading-none text-copy-secondary">
+          {activity.message}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function SyncedReactFlowCanvas({
   onManualSaveChange,
   onSaveStatusChange,
+  onViewportReady,
   projectId,
   templateImportRequest = null,
 }: SyncedReactFlowCanvasProps) {
@@ -1708,6 +1771,7 @@ function SyncedReactFlowCanvas({
   const hasResolvedInitialCanvasLoad = useRef(false)
   const lastTemplateImportRequestId = useRef<number | null>(null)
   const latestCanvasContent = useRef({ edges, nodes })
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
   const hasCanvasContent = nodes.length > 0 || edges.length > 0
   const isAutosaveEnabled =
     isCanvasPersistenceReady || hasCanvasContent
@@ -1827,6 +1891,36 @@ function SyncedReactFlowCanvas({
   useEffect(() => {
     return () => onManualSaveChange?.(null)
   }, [onManualSaveChange])
+
+  // Hand a viewport-center getter (in flow coordinates) up to the workspace so
+  // the AI sidebar can place a generated design where the sender is looking.
+  // Read lazily on call so it always reflects the current pan/zoom.
+  const getViewportCenter = useCallback((): { x: number; y: number } | null => {
+    const container = canvasContainerRef.current
+
+    if (container === null || reactFlowInstance === null) {
+      return null
+    }
+
+    const rect = container.getBoundingClientRect()
+
+    if (rect.width === 0 || rect.height === 0) {
+      return null
+    }
+
+    return reactFlowInstance.screenToFlowPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    })
+  }, [reactFlowInstance])
+
+  useEffect(() => {
+    onViewportReady?.(reactFlowInstance !== null ? getViewportCenter : null)
+  }, [getViewportCenter, onViewportReady, reactFlowInstance])
+
+  useEffect(() => {
+    return () => onViewportReady?.(null)
+  }, [onViewportReady])
 
   useEffect(() => {
     latestCanvasContent.current = { edges, nodes }
@@ -2161,7 +2255,7 @@ function SyncedReactFlowCanvas({
 
   return (
     <CanvasEditingContext.Provider value={canvasEditingContext}>
-      <div className="relative h-full w-full">
+      <div ref={canvasContainerRef} className="relative h-full w-full">
         <ReactFlow<CanvasNode, CanvasEdge>
           className="bg-canvas"
           colorMode="dark"
@@ -2192,6 +2286,7 @@ function SyncedReactFlowCanvas({
             variant={BackgroundVariant.Dots}
           />
           <LiveCursors currentUserId={currentUserId} />
+          <AiAgentStatus />
           <ParticipantAvatarGroup currentUserId={currentUserId} />
           <CanvasControlBar
             canRedo={canRedo}
@@ -2212,43 +2307,34 @@ function SyncedReactFlowCanvas({
 function BaseCanvas({
   onManualSaveChange,
   onSaveStatusChange,
+  onViewportReady,
   projectId,
-  roomId,
   templateImportRequest = null,
 }: BaseCanvasProps) {
   return (
     <section className="relative min-w-0 flex-1 overflow-hidden bg-canvas">
-      <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-        <CanvasErrorBoundary>
-          <RoomProvider
-            id={roomId}
-            initialPresence={{
-              cursor: null,
-              thinking: false,
-            }}
-          >
-            <ClientSideSuspense
-              fallback={
-                <CanvasStatus
-                  title="Opening room"
-                  message="Loading the collaborative canvas."
-                />
-              }
-            >
-              {() => (
-                <LiveblocksConnectionFallback>
-                  <SyncedReactFlowCanvas
-                    onManualSaveChange={onManualSaveChange}
-                    onSaveStatusChange={onSaveStatusChange}
-                    projectId={projectId}
-                    templateImportRequest={templateImportRequest}
-                  />
-                </LiveblocksConnectionFallback>
-              )}
-            </ClientSideSuspense>
-          </RoomProvider>
-        </CanvasErrorBoundary>
-      </LiveblocksProvider>
+      <CanvasErrorBoundary>
+        <ClientSideSuspense
+          fallback={
+            <CanvasStatus
+              title="Opening room"
+              message="Loading the collaborative canvas."
+            />
+          }
+        >
+          {() => (
+            <LiveblocksConnectionFallback>
+              <SyncedReactFlowCanvas
+                onManualSaveChange={onManualSaveChange}
+                onSaveStatusChange={onSaveStatusChange}
+                onViewportReady={onViewportReady}
+                projectId={projectId}
+                templateImportRequest={templateImportRequest}
+              />
+            </LiveblocksConnectionFallback>
+          )}
+        </ClientSideSuspense>
+      </CanvasErrorBoundary>
     </section>
   )
 }
