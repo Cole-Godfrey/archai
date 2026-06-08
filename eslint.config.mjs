@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Trigger.dev build/cache artifacts (regenerated per build, never authored).
+    ".trigger/**",
   ]),
 ]);
 

@@ -35,7 +35,7 @@
 - Projects can include additional collaborators.
 - Only authenticated users can access protected routes.
 - Only the owner or a collaborator can mutate project resources.
-- Liveblocks room tokens are issued only after verifying project membership.
+- Liveblocks room tokens are issued only after verifying project membership; verified members are granted room write plus `feeds:write` so they can read and write the room's shared AI status feed.
 - Project IDs are used as Liveblocks room IDs for editor workspaces.
 
 ## Starter System Designs
