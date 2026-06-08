@@ -102,27 +102,33 @@ function useCanvasAutosave({
         signal: abortController.signal,
       })
         .then((response) => {
-          if (activeSaveAbortController.current === abortController) {
-            activeSaveAbortController.current = null
+          // A newer save (or teardown) superseded this request; ignore the
+          // stale completion so it can't overwrite the current status or the
+          // saved-payload baseline.
+          if (activeSaveAbortController.current !== abortController) {
+            return
           }
 
           if (!response.ok) {
             throw new Error("Canvas autosave failed.")
           }
 
+          activeSaveAbortController.current = null
           lastSavedPayload.current = payload
           setStatus("saved")
           queueStatusReset()
         })
         .catch((error: unknown) => {
-          if (activeSaveAbortController.current === abortController) {
-            activeSaveAbortController.current = null
-          }
-
           if (isAbortError(error)) {
             return
           }
 
+          // Same staleness guard: only the active request may surface an error.
+          if (activeSaveAbortController.current !== abortController) {
+            return
+          }
+
+          activeSaveAbortController.current = null
           setStatus("error")
           queueStatusReset()
         })
@@ -134,6 +140,16 @@ function useCanvasAutosave({
     clearAutosaveTimeout()
     savePayload(snapshotPayload, { force: true })
   }, [clearAutosaveTimeout, savePayload, snapshotPayload])
+
+  // Reset the autosave baseline when the project changes. Without this, the
+  // previous project's hasInitialized/lastSavedPayload would carry over, so a
+  // new project whose opening snapshot matches the prior baseline would be
+  // wrongly treated as already-saved and skip its initial save. Declared before
+  // the main autosave effect so this reset runs first on a projectId change.
+  useEffect(() => {
+    hasInitialized.current = false
+    lastSavedPayload.current = null
+  }, [projectId])
 
   useEffect(() => {
     if (!enabled) {

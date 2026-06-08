@@ -88,6 +88,10 @@ export const designAgentTask = task({
       null
     )
 
+    // Tracks whether the canvas write has landed. Once it has, later failures
+    // must not fail the run — the design is already on the shared canvas.
+    let writeCommitted = false
+
     try {
       const existing = await readExistingFlow(roomId)
       const plan = await generateDesignPlan(prompt, existing, viewportCenter)
@@ -113,11 +117,24 @@ export const designAgentTask = task({
         applyPreparedPlan(flow, prepared)
       })
 
+      // The canvas write has committed; the design is now live for everyone.
+      writeCommitted = true
+
+      // Presence is best-effort from here: swallow failures so a presence error
+      // can't mark the run failed after the canvas already changed.
       await publishAgentPresence(
         roomId,
         { phase: "complete", message: buildCompleteMessage(prepared) },
         prepared.centroid
-      )
+      ).catch((presenceError) => {
+        logger.error("Design agent failed to publish completion presence", {
+          roomId,
+          error:
+            presenceError instanceof Error
+              ? presenceError.message
+              : "Unknown error",
+        })
+      })
 
       return {
         summary: prepared.summary,
@@ -128,6 +145,17 @@ export const designAgentTask = task({
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error"
+
+      // If the canvas already committed, the design landed; record the failure
+      // but let the run succeed instead of telling participants nothing changed.
+      if (writeCommitted) {
+        logger.error("Design agent post-write step failed", {
+          roomId,
+          error: message,
+        })
+        return
+      }
+
       const diagnostics = getDesignGenerationDiagnostics(error)
 
       if (diagnostics !== null) {
