@@ -12,6 +12,16 @@ const DEFAULT_MODEL = "gemini-3.5-flash"
 // more time than design generation before failing fast on a provider stall.
 const SPEC_GENERATION_TIMEOUT_MS = 120_000
 
+// Upper bounds on spec-generation input. The prompt is assembled from
+// client-supplied chat and canvas data, so each dimension is capped to keep the
+// prompt size (and token spend) bounded against attacker-controlled expansion.
+// Limits are generous relative to real design sessions and are never reached by
+// legitimate input.
+const MAX_CHAT_MESSAGE_LENGTH = 10_000
+const MAX_CHAT_HISTORY_LENGTH = 500
+const MAX_CANVAS_NODES = 1_000
+const MAX_CANVAS_EDGES = 2_000
+
 /**
  * A single chat message forwarded as spec-generation context. Mirrors the
  * `ai-chat` feed payload but only requires what the spec needs (role + content);
@@ -20,7 +30,7 @@ const SPEC_GENERATION_TIMEOUT_MS = 120_000
  */
 const specChatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
-  content: z.string(),
+  content: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
   sender: z.string().optional(),
 })
 
@@ -34,9 +44,9 @@ type SpecChatMessage = z.infer<typeof specChatMessageSchema>
 const generateSpecInputSchema = z.object({
   projectId: z.string().min(1),
   roomId: z.string().min(1),
-  chatHistory: z.array(specChatMessageSchema),
-  nodes: z.array(z.unknown()),
-  edges: z.array(z.unknown()),
+  chatHistory: z.array(specChatMessageSchema).max(MAX_CHAT_HISTORY_LENGTH),
+  nodes: z.array(z.unknown()).max(MAX_CANVAS_NODES),
+  edges: z.array(z.unknown()).max(MAX_CANVAS_EDGES),
 })
 
 type GenerateSpecInput = z.infer<typeof generateSpecInputSchema>

@@ -1,4 +1,4 @@
-import { logger, metadata, task } from "@trigger.dev/sdk"
+import { AbortTaskRunError, logger, metadata, task } from "@trigger.dev/sdk"
 
 import { parseCanvasSnapshot } from "@/lib/canvas-snapshot"
 import {
@@ -52,7 +52,9 @@ export const generateSpec = task({
           )
           .join("; ")
 
-        throw new Error(`Spec generation input is invalid: ${issues}`)
+        throw new AbortTaskRunError(
+          `Spec generation input is invalid: ${issues}`
+        )
       }
 
       const snapshot = parseCanvasSnapshot({
@@ -61,7 +63,7 @@ export const generateSpec = task({
       })
 
       if (snapshot === null) {
-        throw new Error(
+        throw new AbortTaskRunError(
           "Spec generation received invalid canvas nodes or edges."
         )
       }

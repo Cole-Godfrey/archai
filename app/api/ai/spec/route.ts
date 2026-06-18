@@ -1,4 +1,4 @@
-import { tasks } from "@trigger.dev/sdk"
+import { runs, tasks } from "@trigger.dev/sdk"
 
 import type { generateSpec } from "@/trigger/generate-spec"
 import { parseSpecRequest } from "@/lib/ai-spec"
@@ -50,13 +50,21 @@ export async function POST(request: Request) {
     edges,
   })
 
-  await prisma.taskRun.create({
-    data: {
-      runId: handle.id,
-      projectId: access.project.id,
-      userId: identity.userId,
-    },
-  })
+  // Persist the run→owner mapping. If this write fails after the trigger,
+  // cancel the run so it cannot execute without a DB record — otherwise it
+  // would be an orphaned run with no ownership mapping for token issuance.
+  try {
+    await prisma.taskRun.create({
+      data: {
+        runId: handle.id,
+        projectId: access.project.id,
+        userId: identity.userId,
+      },
+    })
+  } catch (error) {
+    await runs.cancel(handle.id).catch(() => {})
+    throw error
+  }
 
   return Response.json({ runId: handle.id }, { status: 202 })
 }
