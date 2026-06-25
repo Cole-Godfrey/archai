@@ -13,6 +13,7 @@ model Project {
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
   collaborators  ProjectCollaborator[]
+  specs          ProjectSpec[]
 
   @@index([ownerId])
   @@index([createdAt])
@@ -26,5 +27,18 @@ model ProjectCollaborator {
 
   @@unique([projectId, email])
   @@index([email])
+  @@index([projectId, createdAt])
+}
+
+// Metadata for a generated Markdown technical spec. The Markdown content itself
+// lives in Vercel Blob (specs/{projectId}/{specId}.md); `filePath` stores the
+// blob URL reference. See context/architecture-context.md (storage model).
+model ProjectSpec {
+  id        String   @id @default(cuid())
+  projectId String
+  filePath  String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
   @@index([projectId, createdAt])
 }
