@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 
-import { put } from "@vercel/blob"
+import { del, put } from "@vercel/blob"
 
 import { prisma } from "@/lib/prisma"
 
@@ -32,13 +32,22 @@ async function persistGeneratedSpec(
     contentType: "text/markdown",
   })
 
-  const spec = await prisma.projectSpec.create({
-    data: {
-      id: specId,
-      projectId,
-      filePath: blob.url,
-    },
-  })
+  let spec
+  try {
+    spec = await prisma.projectSpec.create({
+      data: {
+        id: specId,
+        projectId,
+        filePath: blob.url,
+      },
+    })
+  } catch (error) {
+    // The blob uploaded but the metadata write failed. Delete the now-orphaned
+    // blob so a failed persist leaves nothing behind. Best-effort: a cleanup
+    // failure must not mask the original create error.
+    await del(blob.url).catch(() => {})
+    throw error
+  }
 
   return {
     id: spec.id,

@@ -83,6 +83,8 @@ export async function GET(
       "Content-Disposition": `attachment; filename="${buildSpecFilename(
         access.project.name
       )}"`,
+      // Private project data: never cache the spec in shared/proxy caches.
+      "Cache-Control": "private, no-store",
     },
   })
 }
