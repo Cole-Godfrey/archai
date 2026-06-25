@@ -5,6 +5,7 @@ import {
   generateSpecInputSchema,
   generateSpecMarkdown,
 } from "@/lib/spec-generation"
+import { persistGeneratedSpec } from "@/lib/spec-persistence"
 
 interface GenerateSpecPayload {
   projectId: string
@@ -21,14 +22,18 @@ function setStatus(status: string, message: string): void {
 
 /**
  * Generates a Markdown technical specification from a project's canvas graph and
- * chat discussion with Gemini, returning it as the task output for the
- * requesting client to read via Trigger.dev Realtime. Run metadata is updated at
- * each phase so a realtime subscriber can show progress.
+ * chat discussion with Gemini, persists it (Vercel Blob holds the content, a
+ * `ProjectSpec` row holds the metadata), and returns `{ specId, markdown }` so
+ * the requesting client can read the spec via Trigger.dev Realtime and link to
+ * its download route. Run metadata is updated at each phase so a realtime
+ * subscriber can show progress. See
+ * context/feature-specs/28-spec-persistence-download.md.
  *
- * Unlike the design agent, retries are safe here: the task has no canvas or
- * database side effects — it only reads its payload, calls Gemini, and returns
- * Markdown — so a transient provider failure can be retried without duplicating
- * anything. See context/feature-specs/27-spec-generation-flow.md.
+ * Retries (maxAttempts: 3) stay safe even with persistence: each attempt uses a
+ * fresh spec id, the blob upload runs before the metadata write, and the run
+ * returns immediately after a successful `ProjectSpec.create`. So a run produces
+ * exactly one persisted record on success; a failed attempt leaves at most an
+ * unreferenced blob (no database row), never a duplicate spec.
  */
 export const generateSpec = task({
   id: "generate-spec",
@@ -83,15 +88,20 @@ export const generateSpec = task({
         input.data.chatHistory
       )
 
+      setStatus("saving", "Saving the specification…")
+
+      const spec = await persistGeneratedSpec(input.data.projectId, markdown)
+
       setStatus("completed", "Specification ready.")
 
       logger.info("Spec generation completed", {
         projectId: input.data.projectId,
         roomId: input.data.roomId,
+        specId: spec.id,
         specLength: markdown.length,
       })
 
-      return markdown
+      return { specId: spec.id, markdown }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error"
 
