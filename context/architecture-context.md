@@ -53,7 +53,7 @@
 ### Design Generation
 
 - Input: user prompt, project context, and current canvas state.
-- Triggering: `POST /api/ai/design` requires `roomId` and `projectId` to match, resolves project access from that room/project ID, and passes only the server-authorized ID to the `design-agent` task and `TaskRun` record. The background worker must never operate on a client-supplied room that was not authorized by the route.
+- Triggering: `POST /api/ai/design` requires `roomId` and `projectId` to match, resolves project access from that room/project ID, creates a `TaskRun` admission record before triggering work, then passes only the server-authorized ID to the `design-agent` task. The admission id is used as the Trigger.dev idempotency key and the final run id is attached to the existing record after Trigger.dev returns a handle. The background worker must never operate on a client-supplied room that was not authorized by the route.
 - Execution: durable background task via Trigger.dev.
 - Output: structured node and edge updates written into the shared Liveblocks room.
 

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto"
+
 import { runs, tasks } from "@trigger.dev/sdk"
 
 import type { designAgentTask } from "@/trigger/design-agent"
@@ -46,20 +48,33 @@ export async function POST(request: Request) {
   }
 
   const authorizedProjectId = access.project.id
+  const admissionId = randomUUID()
 
-  const handle = await tasks.trigger<typeof designAgentTask>("design-agent", {
-    prompt,
-    roomId: authorizedProjectId,
-    viewportCenter,
+  await prisma.taskRun.create({
+    data: {
+      admissionId,
+      projectId: authorizedProjectId,
+      userId: identity.userId,
+    },
   })
 
+  const handle = await tasks.trigger<typeof designAgentTask>(
+    "design-agent",
+    {
+      prompt,
+      roomId: authorizedProjectId,
+      viewportCenter,
+    },
+    {
+      idempotencyKey: admissionId,
+      metadata: { admissionId },
+    }
+  )
+
   try {
-    await prisma.taskRun.create({
-      data: {
-        runId: handle.id,
-        projectId: authorizedProjectId,
-        userId: identity.userId,
-      },
+    await prisma.taskRun.update({
+      where: { admissionId },
+      data: { runId: handle.id },
     })
   } catch (error) {
     await runs.cancel(handle.id).catch(() => {})
