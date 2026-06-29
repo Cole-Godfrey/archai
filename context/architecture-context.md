@@ -48,11 +48,12 @@
 
 ## AI Generation Model
 
-- Provider: design and spec generation use the shared `lib/ai-provider.ts` helper. The current live-test target is Anthropic through `@ai-sdk/anthropic`, defaulting to `claude-opus-4-7` with `effort: "max"`; `ANTHROPIC_API_KEY` is required and `ANTHROPIC_AI_MODEL` can override the model id. `@ai-sdk/openai` remains installed only for the ordered fallback test path. Strict structured-output schemas must not use optional object properties; optional design-action semantics are represented as required nullable fields and interpreted as `null` meaning "use the default / leave unchanged / auto-route."
+- Provider: design and spec generation use the shared `lib/ai-provider.ts` helper. The current live-test target is OpenAI Responses through `@ai-sdk/openai`, defaulting to `gpt-5.5` with `reasoningEffort: "medium"` and `store: false`; `OPENAI_API_KEY` is required and `OPENAI_AI_MODEL` can override the model id. Strict structured-output schemas must not use optional object properties; optional design-action semantics are represented as required nullable fields and interpreted as `null` meaning "use the default / leave unchanged / auto-route."
 
 ### Design Generation
 
 - Input: user prompt, project context, and current canvas state.
+- Triggering: `POST /api/ai/design` requires `roomId` and `projectId` to match, resolves project access from that room/project ID, and passes only the server-authorized ID to the `design-agent` task and `TaskRun` record. The background worker must never operate on a client-supplied room that was not authorized by the route.
 - Execution: durable background task via Trigger.dev.
 - Output: structured node and edge updates written into the shared Liveblocks room.
 
