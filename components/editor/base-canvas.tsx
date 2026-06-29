@@ -84,11 +84,13 @@ import {
   type CanvasEdge,
   type CanvasNode,
   type CanvasNodeColorId,
+  type CanvasSnapshot,
   type CanvasSaveStatus,
   type CanvasNodeShape,
 } from "@/types/canvas"
 
 interface BaseCanvasProps {
+  onCanvasSnapshotChange?: (snapshot: CanvasSnapshot) => void
   onManualSaveChange?: (saveCanvas: (() => void) | null) => void
   onSaveStatusChange?: (status: CanvasSaveStatus) => void
   onViewportReady?: (
@@ -216,6 +218,7 @@ interface ParticipantAvatarGroupProps {
 }
 
 interface SyncedReactFlowCanvasProps {
+  onCanvasSnapshotChange?: (snapshot: CanvasSnapshot) => void
   onManualSaveChange?: (saveCanvas: (() => void) | null) => void
   onSaveStatusChange?: (status: CanvasSaveStatus) => void
   onViewportReady?: (
@@ -1736,6 +1739,7 @@ function AiAgentStatus() {
 }
 
 function SyncedReactFlowCanvas({
+  onCanvasSnapshotChange,
   onManualSaveChange,
   onSaveStatusChange,
   onViewportReady,
@@ -1925,6 +1929,10 @@ function SyncedReactFlowCanvas({
   useEffect(() => {
     latestCanvasContent.current = { edges, nodes }
   }, [edges, nodes])
+
+  useEffect(() => {
+    onCanvasSnapshotChange?.({ edges, nodes })
+  }, [edges, nodes, onCanvasSnapshotChange])
 
   useEffect(() => {
     onSaveStatusChange?.(
@@ -2305,6 +2313,7 @@ function SyncedReactFlowCanvas({
 }
 
 function BaseCanvas({
+  onCanvasSnapshotChange,
   onManualSaveChange,
   onSaveStatusChange,
   onViewportReady,
@@ -2325,6 +2334,7 @@ function BaseCanvas({
           {() => (
             <LiveblocksConnectionFallback>
               <SyncedReactFlowCanvas
+                onCanvasSnapshotChange={onCanvasSnapshotChange}
                 onManualSaveChange={onManualSaveChange}
                 onSaveStatusChange={onSaveStatusChange}
                 onViewportReady={onViewportReady}

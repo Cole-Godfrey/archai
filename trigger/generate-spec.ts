@@ -22,10 +22,10 @@ function setStatus(status: string, message: string): void {
 
 /**
  * Generates a Markdown technical specification from a project's canvas graph and
- * chat discussion with Gemini, persists it (Vercel Blob holds the content, a
- * `ProjectSpec` row holds the metadata), and returns `{ specId, markdown }` so
- * the requesting client can read the spec via Trigger.dev Realtime and link to
- * its download route. Run metadata is updated at each phase so a realtime
+ * chat discussion with the active AI model, persists it (Vercel Blob holds the
+ * content, a `ProjectSpec` row holds the metadata), and returns
+ * `{ specId, markdown }` so the requesting client can read the spec via
+ * Trigger.dev Realtime and link to its download route. Run metadata is updated at each phase so a realtime
  * subscriber can show progress. See
  * context/feature-specs/28-spec-persistence-download.md.
  *

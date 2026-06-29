@@ -48,6 +48,8 @@
 
 ## AI Generation Model
 
+- Provider: design and spec generation use the shared `lib/ai-provider.ts` helper. The current live-test target is Anthropic through `@ai-sdk/anthropic`, defaulting to `claude-opus-4-7` with `effort: "max"`; `ANTHROPIC_API_KEY` is required and `ANTHROPIC_AI_MODEL` can override the model id. `@ai-sdk/openai` remains installed only for the ordered fallback test path. Strict structured-output schemas must not use optional object properties; optional design-action semantics are represented as required nullable fields and interpreted as `null` meaning "use the default / leave unchanged / auto-route."
+
 ### Design Generation
 
 - Input: user prompt, project context, and current canvas state.
@@ -59,7 +61,10 @@
 - Input: current canvas graph and project context.
 - Execution: durable background task via Trigger.dev.
 - Output: Markdown spec content saved to Vercel Blob (`specs/{projectId}/{specId}.md`) and linked to the project via a `ProjectSpec` record in the database. The task returns `{ specId, markdown }`.
+- Triggering: the editor Specs tab sends the current React Flow nodes/edges plus validated AI chat feed entries to `POST /api/ai/spec`, obtains a run-scoped token from `POST /api/ai/spec/token`, tracks completion with Trigger.dev React hooks, and reloads the metadata list when the task finishes successfully.
+- Listing: `GET /api/projects/[projectId]/specs` authenticates the user, verifies project access, and returns `ProjectSpec` metadata only (`id`, `createdAt`, project-name-derived `filename`) without exposing Blob URLs. The visible filename uses the same slugging helper as the download attachment name.
 - Download: `GET /api/projects/[projectId]/specs/[specId]/download` returns the saved spec as a Markdown attachment after verifying authentication, project access, and that the spec belongs to the project.
+- Preview: the editor Specs tab fetches Markdown content through the same authenticated download endpoint and renders it in a modal; clients never fetch Blob URLs directly.
 
 ## Invariants
 
