@@ -1,4 +1,6 @@
-import { tasks } from "@trigger.dev/sdk"
+import { randomUUID } from "node:crypto"
+
+import { runs, tasks } from "@trigger.dev/sdk"
 
 import type { designAgentTask } from "@/trigger/design-agent"
 import { parseDesignRequest } from "@/lib/ai-design"
@@ -8,6 +10,7 @@ import {
 } from "@/lib/project-access"
 import { prisma } from "@/lib/prisma"
 import {
+  badRequestResponse,
   forbiddenResponse,
   parseJsonBody,
   unauthorizedResponse,
@@ -34,25 +37,49 @@ export async function POST(request: Request) {
 
   const { prompt, roomId, projectId, viewportCenter } = designRequest.data
 
-  const access = await getProjectAccessForIdentity(projectId, identity)
+  if (roomId !== projectId) {
+    return badRequestResponse("Project ID and room ID must match.")
+  }
+
+  const access = await getProjectAccessForIdentity(roomId, identity)
 
   if (access === null) {
     return forbiddenResponse()
   }
 
-  const handle = await tasks.trigger<typeof designAgentTask>("design-agent", {
-    prompt,
-    roomId,
-    viewportCenter,
-  })
+  const authorizedProjectId = access.project.id
+  const admissionId = randomUUID()
 
   await prisma.taskRun.create({
     data: {
-      runId: handle.id,
-      projectId,
+      admissionId,
+      projectId: authorizedProjectId,
       userId: identity.userId,
     },
   })
+
+  const handle = await tasks.trigger<typeof designAgentTask>(
+    "design-agent",
+    {
+      prompt,
+      roomId: authorizedProjectId,
+      viewportCenter,
+    },
+    {
+      idempotencyKey: admissionId,
+      metadata: { admissionId },
+    }
+  )
+
+  try {
+    await prisma.taskRun.update({
+      where: { admissionId },
+      data: { runId: handle.id },
+    })
+  } catch (error) {
+    await runs.cancel(handle.id).catch(() => {})
+    throw error
+  }
 
   return Response.json({ runId: handle.id }, { status: 202 })
 }

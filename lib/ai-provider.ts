@@ -1,20 +1,20 @@
 import {
-  createAnthropic,
-  type AnthropicLanguageModelOptions,
-} from "@ai-sdk/anthropic"
+  createOpenAI,
+  type OpenAILanguageModelResponsesOptions,
+} from "@ai-sdk/openai"
 
-const DEFAULT_AI_MODEL = "claude-opus-4-7"
-const AI_MODEL_LABEL = "Claude Opus 4.7"
+const DEFAULT_AI_MODEL = "gpt-5.5"
+const AI_MODEL_LABEL = "GPT-5.5 Medium"
 const AI_MAX_OUTPUT_TOKENS = 64_000
 const AI_PROVIDER_OPTIONS = {
-  anthropic: {
-    effort: "max",
-    structuredOutputMode: "auto",
+  openai: {
+    reasoningEffort: "medium",
+    store: false,
   },
-} satisfies { anthropic: AnthropicLanguageModelOptions }
+} satisfies { openai: OpenAILanguageModelResponsesOptions }
 
 function getAIModelId(): string {
-  const configuredModel = process.env.ANTHROPIC_AI_MODEL?.trim()
+  const configuredModel = process.env.OPENAI_AI_MODEL?.trim()
 
   return configuredModel && configuredModel.length > 0
     ? configuredModel
@@ -27,20 +27,20 @@ function getAIModelLabel(): string {
   return modelId === DEFAULT_AI_MODEL ? AI_MODEL_LABEL : modelId
 }
 
-function requireAnthropicApiKey(): string {
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim()
+function requireOpenAIApiKey(): string {
+  const apiKey = process.env.OPENAI_API_KEY?.trim()
 
   if (apiKey === undefined || apiKey.length === 0) {
-    throw new Error("ANTHROPIC_API_KEY is required for Archai AI generation.")
+    throw new Error("OPENAI_API_KEY is required for Archai AI generation.")
   }
 
   return apiKey
 }
 
 function createAIModel(modelId = getAIModelId()) {
-  const anthropic = createAnthropic({ apiKey: requireAnthropicApiKey() })
+  const openai = createOpenAI({ apiKey: requireOpenAIApiKey() })
 
-  return anthropic(modelId)
+  return openai.responses(modelId)
 }
 
 function getAIProviderOptions() {

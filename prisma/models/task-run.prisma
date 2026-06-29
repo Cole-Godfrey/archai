@@ -2,10 +2,11 @@
 // before issuing run-scoped public tokens. See context/architecture-context.md
 // (task run records are first-class relational data in PostgreSQL).
 model TaskRun {
-  runId     String   @unique
-  projectId String
-  userId    String
-  createdAt DateTime @default(now())
+  admissionId String   @unique @default(cuid())
+  runId       String?  @unique
+  projectId   String
+  userId      String
+  createdAt   DateTime @default(now())
 
   @@index([userId, projectId])
 }
