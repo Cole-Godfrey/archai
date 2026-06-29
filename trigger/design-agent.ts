@@ -67,8 +67,8 @@ function buildCompleteMessage(prepared: PreparedDesignPlan): string {
 
 /**
  * Generates a system design from a prompt and writes it onto the shared
- * collaborative canvas. Interprets the prompt with Gemini, lays the result out
- * on the existing Liveblocks flow storage, and publishes AI presence and
+ * collaborative canvas. Interprets the prompt with the active AI model, lays the
+ * result out on the existing Liveblocks flow storage, and publishes AI presence and
  * status to every participant at each step.
  *
  * Retries are disabled: generation runs before any canvas write, so a failure
@@ -159,7 +159,7 @@ export const designAgentTask = task({
       const diagnostics = getDesignGenerationDiagnostics(error)
 
       if (diagnostics !== null) {
-        logger.error("Design generation invalid Gemini output", {
+        logger.error("Design generation invalid AI model output", {
           roomId,
           diagnostics,
         })

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRealtimeRun, useRun } from "@trigger.dev/react-hooks"
-import { Bot, Download, FileText, LoaderCircle, Send, X } from "lucide-react"
+import { Bot, LoaderCircle, Send, X } from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -12,7 +12,7 @@ import {
 } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { SpecsTab } from "@/components/editor/specs-tab"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,6 +20,7 @@ import { useAiActivityStatus } from "@/hooks/use-ai-activity-status"
 import { useAiChatFeed, type AiChatFeedEntry } from "@/hooks/use-ai-chat-feed"
 import { cn } from "@/lib/utils"
 import type { designAgentTask } from "@/trigger/design-agent"
+import type { CanvasSnapshot } from "@/types/canvas"
 
 const starterPrompts = [
   "Design an e-commerce backend",
@@ -48,6 +49,7 @@ interface AISidebarProps {
   onClose: () => void
   roomId: string
   projectId: string
+  canvasSnapshot: CanvasSnapshot | null
   getViewportCenter?: (() => { x: number; y: number } | null) | null
   className?: string
 }
@@ -418,8 +420,13 @@ function ArchitectTab({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ai-text opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-ai-text" />
             </span>
-            <span className="truncate text-xs leading-none text-copy-secondary">
-              {statusText ?? "Archai is working…"}
+            <span className="min-w-0 flex flex-col gap-1">
+              <span className="truncate text-xs leading-none text-copy-secondary">
+                {statusText ?? "Archai is working…"}
+              </span>
+              <span className="text-[0.65rem] leading-none text-copy-faint">
+                Est. time 1-3 min
+              </span>
             </span>
           </div>
         )}
@@ -460,56 +467,12 @@ function ArchitectTab({
   )
 }
 
-function SpecsTab() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
-      <Button
-        type="button"
-        className="w-full rounded-md border border-ai/40 bg-ai/15 text-ai-text hover:bg-ai/20"
-      >
-        <FileText className="h-4 w-4" aria-hidden="true" />
-        Generate Spec
-      </Button>
-
-      <Card className="rounded-lg border border-surface-border bg-elevated text-copy-primary ring-0">
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-3 px-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-surface-border bg-subtle text-ai-text">
-            <FileText className="h-4 w-4" aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-medium leading-snug">
-              System Architecture Spec
-            </h3>
-            <p className="mt-1 text-xs text-copy-muted">Draft preview</p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            className="rounded-md border-surface-border bg-surface text-copy-faint"
-            disabled
-            aria-label="Download spec"
-            title="Download spec"
-          >
-            <Download className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
-        <div className="px-4">
-          <p className="text-xs leading-5 text-copy-muted">
-            This workspace spec will summarize services, data stores, external
-            systems, and operational boundaries from the canvas graph.
-          </p>
-        </div>
-      </Card>
-    </div>
-  )
-}
-
 function AISidebar({
   isOpen,
   onClose,
   roomId,
   projectId,
+  canvasSnapshot,
   getViewportCenter,
   className,
 }: AISidebarProps) {
@@ -585,7 +548,11 @@ function AISidebar({
           value="specs"
           className="mt-0 flex min-h-0 flex-1 flex-col"
         >
-          <SpecsTab />
+          <SpecsTab
+            canvasSnapshot={canvasSnapshot}
+            projectId={projectId}
+            roomId={roomId}
+          />
         </TabsContent>
       </Tabs>
     </aside>

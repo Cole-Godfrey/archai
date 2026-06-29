@@ -1,13 +1,16 @@
 import { randomUUID } from "node:crypto"
 
-import {
-  createGoogleGenerativeAI,
-  type GoogleLanguageModelOptions,
-} from "@ai-sdk/google"
 import type { MutableFlow } from "@liveblocks/react-flow/node"
 import { generateObject, NoObjectGeneratedError } from "ai"
 import { z } from "zod"
 
+import {
+  AI_MAX_OUTPUT_TOKENS,
+  createAIModel,
+  getAIModelId,
+  getAIModelLabel,
+  getAIProviderOptions,
+} from "@/lib/ai-provider"
 import {
   CANVAS_EDGE_TYPE,
   CANVAS_NODE_TYPE,
@@ -21,15 +24,13 @@ import {
   type CanvasSnapshot,
 } from "@/types/canvas"
 
-const DEFAULT_MODEL = "gemini-3.5-flash"
-
-// New node placement is model-directed. The prompt gives Gemini the current
+// New node placement is model-directed. The prompt gives the active AI model the current
 // canvas geometry and requester viewport, and the schema requires add_node
 // coordinates so missing placement is treated as a generation failure.
 const MIN_NODE_DIMENSION = 72
 const MAX_NODE_DIMENSION = 480
 const MAX_ACTIONS = 60
-const DESIGN_GENERATION_TIMEOUT_MS = 90_000
+const DESIGN_GENERATION_TIMEOUT_MS = 180_000
 const MIN_EDGE_LABEL_CENTER_DISTANCE = 300
 const LONG_EDGE_LABEL_CENTER_DISTANCE = 400
 const LONG_EDGE_LABEL_LENGTH = 18
@@ -88,6 +89,9 @@ const coordinateSchema = z
   .finite()
   .describe("Canvas flow-coordinate number.")
 const dimensionSchema = z.number().finite()
+const nullableDimensionSchema = dimensionSchema
+  .nullable()
+  .describe("Optional dimension in pixels. Use null to keep the default size.")
 
 const addNodeActionSchema = z.object({
   type: z.literal("add_node"),
@@ -97,16 +101,22 @@ const addNodeActionSchema = z.object({
   color: colorSchema,
   x: coordinateSchema.describe("Required top-left x coordinate."),
   y: coordinateSchema.describe("Required top-left y coordinate."),
-  width: dimensionSchema.optional(),
-  height: dimensionSchema.optional(),
+  width: nullableDimensionSchema,
+  height: nullableDimensionSchema,
 })
 
 const updateNodeActionSchema = z.object({
   type: z.literal("update_node"),
   id: actionIdSchema,
-  label: nodeLabelSchema.optional(),
-  shape: shapeSchema.optional(),
-  color: colorSchema.optional(),
+  label: nodeLabelSchema
+    .nullable()
+    .describe("New label, or null to leave the label unchanged."),
+  shape: shapeSchema
+    .nullable()
+    .describe("New shape, or null to leave the shape unchanged."),
+  color: colorSchema
+    .nullable()
+    .describe("New color, or null to leave the color unchanged."),
 })
 
 const moveNodeActionSchema = z.object({
@@ -134,8 +144,12 @@ const addEdgeActionSchema = z.object({
   label: edgeLabelSchema,
   source: z.string().min(1).describe("Source node id."),
   target: z.string().min(1).describe("Target node id."),
-  sourceSide: edgeSideSchema.optional(),
-  targetSide: edgeSideSchema.optional(),
+  sourceSide: edgeSideSchema
+    .nullable()
+    .describe("Optional source connection side. Use null for automatic routing."),
+  targetSide: edgeSideSchema
+    .nullable()
+    .describe("Optional target connection side. Use null for automatic routing."),
 })
 
 const deleteEdgeActionSchema = z.object({
@@ -210,10 +224,12 @@ class DesignGenerationInvalidOutputError extends Error {
       diagnostics.schemaIssues.length > 0
         ? diagnostics.schemaIssues.join("; ")
         : (diagnostics.causeMessage ?? diagnostics.errorMessage)
-    const rawResponse = diagnostics.rawResponse ?? "(no Gemini text returned)"
+    const modelLabel = getAIModelLabel()
+    const rawResponse =
+      diagnostics.rawResponse ?? `(no ${modelLabel} text returned)`
 
     super(
-      `Gemini response did not match the design schema. Schema issues: ${issues}. Raw Gemini response: ${rawResponse}`,
+      `${modelLabel} response did not match the design schema. Schema issues: ${issues}. Raw ${modelLabel} response: ${rawResponse}`,
       { cause }
     )
     this.name = "DesignGenerationInvalidOutputError"
@@ -235,6 +251,9 @@ COLORS (use only these ids, grouped by concern for readability):
 - neutral, blue, violet, amber, red, rose, green, teal
 Every node MUST have a color. Group related components with a shared color (e.g. data stores teal, external systems amber, gateways violet). Reserve neutral for genuinely generic components — do not default everything to neutral.
 
+STRICT OUTPUT:
+- Strict structured output requires every property in an action object to be present. If a field is described as optional, include it with a null value instead of omitting it.
+
 LAYOUT:
 - Canvas coordinates are flow coordinates. x/y are the top-left of a node. Positive x moves right; positive y moves down.
 - Existing node entries include position, size, and center. Use that geometry when placing or moving nodes.
@@ -242,14 +261,14 @@ LAYOUT:
 - When adding to an existing diagram, place new nodes near the existing components they connect to unless the request asks for a separate area. Do not push additions to the far right by default.
 - When the canvas is empty, arrange the design around the requester's viewport center when provided.
 - Leave generous space between connected node centers so edge labels sit in open space, not on node blocks. Aim for at least 300px center-to-center for normal labels and 400px or more for labels longer than about 18 characters.
-- You may set width/height on add_node when size helps clarity; otherwise omit them and defaults will be used.
+- You may set width/height on add_node when size helps clarity; otherwise set them to null and defaults will be used.
 
 ACTIONS:
 - Return one JSON object with exactly this top-level shape: { "summary": string, "actions": Action[] }. Never return a bare array.
 - Every action object MUST use the discriminator key "type". Never use "action" as a key.
-- add_node: needs id, label, shape, color, x, y.
-- add_edge: needs id, source, target (node ids), and a required descriptive label naming the relationship or data it carries (e.g. "HTTP", "reads", "writes", "publishes events", "authenticates"). Direct edges along the request/data flow. sourceSide/targetSide (top/right/bottom/left) are optional connection points — omit them and Archai routes each edge from the side facing the other node (e.g. bottom-to-top when a node sits directly below). Only set them to override that automatic routing.
-- update_node: id of an existing node plus any of label/shape/color to change.
+- add_node: needs id, label, shape, color, x, y, width, height. Use null for width/height when the default size is fine.
+- add_edge: needs id, source, target (node ids), label, sourceSide, and targetSide. The label must name the relationship or data it carries (e.g. "HTTP", "reads", "writes", "publishes events", "authenticates"). Direct edges along the request/data flow. sourceSide/targetSide can be top/right/bottom/left connection points, or null for automatic routing from the side facing the other node (e.g. bottom-to-top when a node sits directly below). Only set them to a side to override that automatic routing.
+- update_node: id of an existing node plus label, shape, and color. Use null for any of label/shape/color you do not want to change.
 - move_node: id + x + y. resize_node: id + width + height. Move existing nodes when needed to satisfy the request or improve the resulting layout.
 - delete_node: id. delete_edge: id.
 
@@ -261,46 +280,6 @@ RULES:
 - Prefer adding nodes and edges. Only edit or delete existing elements when the request clearly asks for it.
 - Always connect the components you add so the diagram reads as a coherent system.
 - Return a concise summary and the list of actions.`
-
-function getGoogleProviderOptions(modelId: string): {
-  google: GoogleLanguageModelOptions
-} {
-  const googleOptions: GoogleLanguageModelOptions = {
-    // The local Zod schema remains strict. Google structured outputs can stall
-    // on discriminated unions, so use JSON mode and validate locally.
-    structuredOutputs: false,
-  }
-
-  if (/^gemini-3[.-]/.test(modelId)) {
-    googleOptions.thinkingConfig = { thinkingLevel: "high" }
-  }
-
-  return { google: googleOptions }
-}
-
-function getDesignModelId(): string {
-  const modelId = process.env.GOOGLE_AI_MODEL ?? DEFAULT_MODEL
-
-  if (!/^gemini-3[.-]/.test(modelId)) {
-    throw new Error(
-      `Unsupported Google AI model "${modelId}". Design generation requires a Gemini 3 model id such as "${DEFAULT_MODEL}".`
-    )
-  }
-
-  return modelId
-}
-
-function requireGoogleApiKey(): string {
-  const apiKey = process.env.GOOGLE_AI_API_KEY
-
-  if (apiKey === undefined || apiKey.length === 0) {
-    throw new Error(
-      "GOOGLE_AI_API_KEY is required for the design agent to interpret prompts."
-    )
-  }
-
-  return apiKey
-}
 
 function describeCanvas(snapshot: CanvasSnapshot): string {
   if (snapshot.nodes.length === 0 && snapshot.edges.length === 0) {
@@ -365,7 +344,7 @@ function formatSchemaIssue(issue: z.ZodIssue): string {
   return `${path}: ${issue.message}`
 }
 
-function parseRawGeminiResponse(rawResponse: string): unknown {
+function parseRawAIResponse(rawResponse: string): unknown {
   return JSON.parse(rawResponse)
 }
 
@@ -382,12 +361,13 @@ function getDesignGenerationDiagnostics(
 
   const rawResponse = error.text ?? null
   const schemaIssues: string[] = []
+  const modelLabel = getAIModelLabel()
 
   if (rawResponse === null) {
-    schemaIssues.push("Gemini did not return text to validate.")
+    schemaIssues.push(`${modelLabel} did not return text to validate.`)
   } else {
     try {
-      const parsed = parseRawGeminiResponse(rawResponse)
+      const parsed = parseRawAIResponse(rawResponse)
       const validation = designPlanSchema.safeParse(parsed)
 
       if (!validation.success) {
@@ -395,7 +375,7 @@ function getDesignGenerationDiagnostics(
       }
     } catch (parseError) {
       schemaIssues.push(
-        `Gemini response was not valid JSON: ${
+        `${modelLabel} response was not valid JSON: ${
           getErrorMessage(parseError) ?? String(parseError)
         }`
       )
@@ -421,15 +401,14 @@ function getDesignGenerationDiagnostics(
   }
 }
 
-/** Interprets a prompt with Gemini into a validated, structured design plan. */
+/** Interprets a prompt with the active AI model into a validated, structured design plan. */
 async function generateDesignPlan(
   prompt: string,
   snapshot: CanvasSnapshot,
   viewportCenter?: { x: number; y: number }
 ): Promise<DesignPlan> {
-  const google = createGoogleGenerativeAI({ apiKey: requireGoogleApiKey() })
-  const modelId = getDesignModelId()
-  const model = google(modelId)
+  const modelId = getAIModelId()
+  const model = createAIModel(modelId)
   const abortController = new AbortController()
   const timeout = setTimeout(() => {
     abortController.abort(
@@ -446,8 +425,8 @@ async function generateDesignPlan(
         "A strict canvas-editing plan. add_node actions require color and coordinates; add_edge actions require descriptive labels.",
       system: SYSTEM_PROMPT,
       prompt: buildUserPrompt(prompt, snapshot, viewportCenter),
-      temperature: 0.5,
-      providerOptions: getGoogleProviderOptions(modelId),
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+      providerOptions: getAIProviderOptions(),
       abortSignal: abortController.signal,
     })
 
@@ -1059,12 +1038,9 @@ function prepareDesignPlan(
         x: requireFiniteNumber(action.x, "add_node.x"),
         y: requireFiniteNumber(action.y, "add_node.y"),
       },
-      width:
-        action.width === undefined ? size.width : clampDimension(action.width),
+      width: action.width === null ? size.width : clampDimension(action.width),
       height:
-        action.height === undefined
-          ? size.height
-          : clampDimension(action.height),
+        action.height === null ? size.height : clampDimension(action.height),
       data: {
         label: requireNonEmptyText(action.label, "add_node.label"),
         color,
@@ -1106,13 +1082,13 @@ function prepareDesignPlan(
 
       const data: Partial<CanvasNodeData> = {}
 
-      if (action.label !== undefined) {
+      if (action.label !== null) {
         data.label = action.label.trim() || "Untitled"
       }
-      if (action.shape !== undefined) {
+      if (action.shape !== null) {
         data.shape = action.shape
       }
-      if (action.color !== undefined) {
+      if (action.color !== null) {
         data.color = action.color
       }
 
@@ -1183,13 +1159,15 @@ function prepareDesignPlan(
         edge: {
           id: `edge-${randomUUID()}`,
           source,
-          sourceHandle: action.sourceSide
-            ? `${action.sourceSide}-source`
-            : undefined,
+          sourceHandle:
+            action.sourceSide !== null
+              ? `${action.sourceSide}-source`
+              : undefined,
           target,
-          targetHandle: action.targetSide
-            ? `${action.targetSide}-target`
-            : undefined,
+          targetHandle:
+            action.targetSide !== null
+              ? `${action.targetSide}-target`
+              : undefined,
           type: CANVAS_EDGE_TYPE,
           data: {
             label: requireNonEmptyText(action.label, "add_edge.label"),

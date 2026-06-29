@@ -84,11 +84,13 @@ import {
   type CanvasEdge,
   type CanvasNode,
   type CanvasNodeColorId,
+  type CanvasSnapshot,
   type CanvasSaveStatus,
   type CanvasNodeShape,
 } from "@/types/canvas"
 
 interface BaseCanvasProps {
+  onCanvasSnapshotChange?: (snapshot: CanvasSnapshot) => void
   onManualSaveChange?: (saveCanvas: (() => void) | null) => void
   onSaveStatusChange?: (status: CanvasSaveStatus) => void
   onViewportReady?: (
@@ -216,6 +218,7 @@ interface ParticipantAvatarGroupProps {
 }
 
 interface SyncedReactFlowCanvasProps {
+  onCanvasSnapshotChange?: (snapshot: CanvasSnapshot) => void
   onManualSaveChange?: (saveCanvas: (() => void) | null) => void
   onSaveStatusChange?: (status: CanvasSaveStatus) => void
   onViewportReady?: (
@@ -1736,6 +1739,7 @@ function AiAgentStatus() {
 }
 
 function SyncedReactFlowCanvas({
+  onCanvasSnapshotChange,
   onManualSaveChange,
   onSaveStatusChange,
   onViewportReady,
@@ -1773,8 +1777,9 @@ function SyncedReactFlowCanvas({
   const latestCanvasContent = useRef({ edges, nodes })
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const hasCanvasContent = nodes.length > 0 || edges.length > 0
-  const isAutosaveEnabled =
+  const isCanvasHydrationReady =
     isCanvasPersistenceReady || hasCanvasContent
+  const isAutosaveEnabled = isCanvasHydrationReady
   const undo = useUndo()
   const redo = useRedo()
   const canUndo = useCanUndo()
@@ -1925,6 +1930,14 @@ function SyncedReactFlowCanvas({
   useEffect(() => {
     latestCanvasContent.current = { edges, nodes }
   }, [edges, nodes])
+
+  useEffect(() => {
+    if (!isCanvasHydrationReady) {
+      return
+    }
+
+    onCanvasSnapshotChange?.({ edges, nodes })
+  }, [edges, isCanvasHydrationReady, nodes, onCanvasSnapshotChange])
 
   useEffect(() => {
     onSaveStatusChange?.(
@@ -2305,6 +2318,7 @@ function SyncedReactFlowCanvas({
 }
 
 function BaseCanvas({
+  onCanvasSnapshotChange,
   onManualSaveChange,
   onSaveStatusChange,
   onViewportReady,
@@ -2325,6 +2339,7 @@ function BaseCanvas({
           {() => (
             <LiveblocksConnectionFallback>
               <SyncedReactFlowCanvas
+                onCanvasSnapshotChange={onCanvasSnapshotChange}
                 onManualSaveChange={onManualSaveChange}
                 onSaveStatusChange={onSaveStatusChange}
                 onViewportReady={onViewportReady}

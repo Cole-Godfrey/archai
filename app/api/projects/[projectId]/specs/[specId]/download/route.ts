@@ -6,6 +6,7 @@ import {
 } from "@/lib/project-access"
 import { prisma } from "@/lib/prisma"
 import { forbiddenResponse, unauthorizedResponse } from "@/lib/project-api"
+import { buildSpecFilename } from "@/lib/spec-filename"
 
 interface ProjectSpecDownloadRouteContext {
   params: Promise<{
@@ -20,18 +21,6 @@ function notFoundResponse(message: string) {
 
 function specStorageErrorResponse(message: string) {
   return Response.json({ error: message }, { status: 502 })
-}
-
-// Builds a safe, friendly download filename from the project name. Stripping to
-// `[a-z0-9-]` keeps it free of characters that could break the
-// Content-Disposition header.
-function buildSpecFilename(projectName: string): string {
-  const slug = projectName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-
-  return `${slug.length > 0 ? slug : "spec"}.md`
 }
 
 export async function GET(
@@ -81,7 +70,8 @@ export async function GET(
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
       "Content-Disposition": `attachment; filename="${buildSpecFilename(
-        access.project.name
+        access.project.name,
+        spec.id
       )}"`,
       // Private project data: never cache the spec in shared/proxy caches.
       "Cache-Control": "private, no-store",

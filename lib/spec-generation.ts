@@ -1,16 +1,18 @@
-import {
-  createGoogleGenerativeAI,
-  type GoogleLanguageModelOptions,
-} from "@ai-sdk/google"
 import { generateText } from "ai"
 import { z } from "zod"
 
+import {
+  AI_MAX_OUTPUT_TOKENS,
+  createAIModel,
+  getAIModelId,
+  getAIModelLabel,
+  getAIProviderOptions,
+} from "@/lib/ai-provider"
 import type { CanvasSnapshot } from "@/types/canvas"
 
-const DEFAULT_MODEL = "gemini-3.5-flash"
-// Specs are longer-form than a design plan and run with high thinking, so allow
-// more time than design generation before failing fast on a provider stall.
-const SPEC_GENERATION_TIMEOUT_MS = 120_000
+// Specs are longer-form than a design plan and run through a reasoning model, so
+// allow up to the user-facing 1-3 minute estimate before failing fast.
+const SPEC_GENERATION_TIMEOUT_MS = 180_000
 
 // Upper bounds on spec-generation input. The prompt is assembled from
 // client-supplied chat and canvas data, so each dimension is capped to keep the
@@ -60,7 +62,7 @@ class SpecGenerationTimeoutError extends Error {
 
 class SpecGenerationEmptyOutputError extends Error {
   constructor() {
-    super("Gemini returned an empty technical specification.")
+    super(`${getAIModelLabel()} returned an empty technical specification.`)
     this.name = "SpecGenerationEmptyOutputError"
   }
 }
@@ -89,45 +91,6 @@ RULES:
 - Ground every statement in the provided components, connections, and conversation. Do not invent components or connections that are not present.
 - When the inputs are sparse, write a shorter, accurate specification instead of padding it with fabricated detail.
 - Refer to components by their labels.`
-
-function requireGoogleApiKey(): string {
-  const apiKey = process.env.GOOGLE_AI_API_KEY
-
-  if (apiKey === undefined || apiKey.length === 0) {
-    throw new Error(
-      "GOOGLE_AI_API_KEY is required for spec generation to read the canvas."
-    )
-  }
-
-  return apiKey
-}
-
-// Reuses the same Gemini model selection as design generation (shared
-// GOOGLE_AI_MODEL override, Gemini 3 required) without introducing a shared AI
-// provider abstraction.
-function getSpecModelId(): string {
-  const modelId = process.env.GOOGLE_AI_MODEL ?? DEFAULT_MODEL
-
-  if (!/^gemini-3[.-]/.test(modelId)) {
-    throw new Error(
-      `Unsupported Google AI model "${modelId}". Spec generation requires a Gemini 3 model id such as "${DEFAULT_MODEL}".`
-    )
-  }
-
-  return modelId
-}
-
-function getSpecProviderOptions(modelId: string): {
-  google: GoogleLanguageModelOptions
-} {
-  const googleOptions: GoogleLanguageModelOptions = {}
-
-  if (/^gemini-3[.-]/.test(modelId)) {
-    googleOptions.thinkingConfig = { thinkingLevel: "high" }
-  }
-
-  return { google: googleOptions }
-}
 
 function getNodeLabel(label: string): string {
   const trimmed = label.trim()
@@ -211,16 +174,15 @@ function stripOuterCodeFence(text: string): string {
 
 /**
  * Generates a Markdown technical specification from the canvas graph and chat
- * context with Gemini. Bounded by an AbortController timeout so a provider stall
+ * context with the active AI model. Bounded by an AbortController timeout so a provider stall
  * fails fast. Returns plain Markdown; throws on a timeout or empty output.
  */
 async function generateSpecMarkdown(
   snapshot: CanvasSnapshot,
   chatHistory: SpecChatMessage[]
 ): Promise<string> {
-  const google = createGoogleGenerativeAI({ apiKey: requireGoogleApiKey() })
-  const modelId = getSpecModelId()
-  const model = google(modelId)
+  const modelId = getAIModelId()
+  const model = createAIModel(modelId)
   const abortController = new AbortController()
   const timeout = setTimeout(() => {
     abortController.abort(
@@ -233,8 +195,8 @@ async function generateSpecMarkdown(
       model,
       system: SYSTEM_PROMPT,
       prompt: buildUserPrompt(snapshot, chatHistory),
-      temperature: 0.4,
-      providerOptions: getSpecProviderOptions(modelId),
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+      providerOptions: getAIProviderOptions(),
       abortSignal: abortController.signal,
     })
 

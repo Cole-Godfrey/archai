@@ -23,7 +23,7 @@ import { StarterTemplatesModal } from "@/components/editor/starter-templates-mod
 import { Button } from "@/components/ui/button"
 import { useProjectActions } from "@/hooks/use-project-actions"
 import { cn } from "@/lib/utils"
-import type { CanvasSaveStatus } from "@/types/canvas"
+import type { CanvasSaveStatus, CanvasSnapshot } from "@/types/canvas"
 import type { EditorProject, EditorProjectLists } from "@/types/project"
 
 interface WorkspaceProject {
@@ -145,6 +145,9 @@ function EditorWorkspaceShell({
   const [getViewportCenter, setGetViewportCenter] = useState<
     (() => { x: number; y: number } | null) | null
   >(null)
+  const [canvasSnapshot, setCanvasSnapshot] = useState<CanvasSnapshot | null>(
+    null
+  )
   const [isProjectSidebarOpen, setIsProjectSidebarOpen] = useState(true)
   const [isAssistantOpen, setIsAssistantOpen] = useState(true)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
@@ -291,6 +294,7 @@ function EditorWorkspaceShell({
             }}
           >
             <BaseCanvas
+              onCanvasSnapshotChange={setCanvasSnapshot}
               onManualSaveChange={handleManualSaveChange}
               onSaveStatusChange={setCanvasSaveStatus}
               onViewportReady={handleViewportReady}
@@ -303,6 +307,7 @@ function EditorWorkspaceShell({
               onClose={() => setIsAssistantOpen(false)}
               roomId={currentProject.roomId}
               projectId={currentProject.id}
+              canvasSnapshot={canvasSnapshot}
               getViewportCenter={getViewportCenter}
             />
 

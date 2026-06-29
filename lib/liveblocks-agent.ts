@@ -11,7 +11,7 @@ import {
 // Keep the agent's live presence alive slightly longer than the generation
 // timeout; each `setPresence` call refreshes the TTL. Terminal phases use a
 // short TTL so the agent disappears from the room shortly after it finishes.
-const ACTIVE_PRESENCE_TTL_SECONDS = 105
+const ACTIVE_PRESENCE_TTL_SECONDS = 195
 const FINAL_PRESENCE_TTL_SECONDS = 6
 
 let cachedClient: Liveblocks | undefined
