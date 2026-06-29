@@ -26,7 +26,7 @@ import type { generateSpec } from "@/trigger/generate-spec"
 import type { CanvasSnapshot } from "@/types/canvas"
 
 interface SpecsTabProps {
-  canvasSnapshot: CanvasSnapshot
+  canvasSnapshot: CanvasSnapshot | null
   projectId: string
   roomId: string
 }
@@ -680,7 +680,8 @@ function SpecsTab({ canvasSnapshot, projectId, roomId }: SpecsTabProps) {
           ? polledRun
           : null
   const isGenerating = activeRun !== null
-  const isGenerateDisabled = isGenerating || isSubmitting
+  const isGenerateBusy = isGenerating || isSubmitting
+  const isGenerateDisabled = isGenerateBusy || canvasSnapshot === null
 
   const loadSpecs = useCallback(
     async (signal?: AbortSignal) => {
@@ -815,7 +816,7 @@ function SpecsTab({ canvasSnapshot, projectId, roomId }: SpecsTabProps) {
   }
 
   async function startSpecGeneration() {
-    if (isGenerateDisabled) {
+    if (isGenerateDisabled || canvasSnapshot === null) {
       return
     }
 
@@ -891,7 +892,7 @@ function SpecsTab({ canvasSnapshot, projectId, roomId }: SpecsTabProps) {
             disabled={isGenerateDisabled}
             onClick={startSpecGeneration}
           >
-            {isGenerateDisabled ? (
+            {isGenerateBusy ? (
               <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
               <FileText className="h-4 w-4" aria-hidden="true" />

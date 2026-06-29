@@ -1777,8 +1777,9 @@ function SyncedReactFlowCanvas({
   const latestCanvasContent = useRef({ edges, nodes })
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const hasCanvasContent = nodes.length > 0 || edges.length > 0
-  const isAutosaveEnabled =
+  const isCanvasHydrationReady =
     isCanvasPersistenceReady || hasCanvasContent
+  const isAutosaveEnabled = isCanvasHydrationReady
   const undo = useUndo()
   const redo = useRedo()
   const canUndo = useCanUndo()
@@ -1931,8 +1932,12 @@ function SyncedReactFlowCanvas({
   }, [edges, nodes])
 
   useEffect(() => {
+    if (!isCanvasHydrationReady) {
+      return
+    }
+
     onCanvasSnapshotChange?.({ edges, nodes })
-  }, [edges, nodes, onCanvasSnapshotChange])
+  }, [edges, isCanvasHydrationReady, nodes, onCanvasSnapshotChange])
 
   useEffect(() => {
     onSaveStatusChange?.(

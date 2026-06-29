@@ -145,10 +145,9 @@ function EditorWorkspaceShell({
   const [getViewportCenter, setGetViewportCenter] = useState<
     (() => { x: number; y: number } | null) | null
   >(null)
-  const [canvasSnapshot, setCanvasSnapshot] = useState<CanvasSnapshot>({
-    nodes: [],
-    edges: [],
-  })
+  const [canvasSnapshot, setCanvasSnapshot] = useState<CanvasSnapshot | null>(
+    null
+  )
   const [isProjectSidebarOpen, setIsProjectSidebarOpen] = useState(true)
   const [isAssistantOpen, setIsAssistantOpen] = useState(true)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)

@@ -49,7 +49,7 @@ interface AISidebarProps {
   onClose: () => void
   roomId: string
   projectId: string
-  canvasSnapshot: CanvasSnapshot
+  canvasSnapshot: CanvasSnapshot | null
   getViewportCenter?: (() => { x: number; y: number } | null) | null
   className?: string
 }

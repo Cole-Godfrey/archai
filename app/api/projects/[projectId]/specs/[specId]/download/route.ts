@@ -70,7 +70,8 @@ export async function GET(
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
       "Content-Disposition": `attachment; filename="${buildSpecFilename(
-        access.project.name
+        access.project.name,
+        spec.id
       )}"`,
       // Private project data: never cache the spec in shared/proxy caches.
       "Cache-Control": "private, no-store",

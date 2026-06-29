@@ -42,7 +42,7 @@ export async function GET(
     specs: specs.map((spec) => ({
       id: spec.id,
       createdAt: spec.createdAt.toISOString(),
-      filename: buildSpecFilename(access.project.name),
+      filename: buildSpecFilename(access.project.name, spec.id),
     })),
   })
 }
