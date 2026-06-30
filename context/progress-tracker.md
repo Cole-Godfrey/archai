@@ -12,6 +12,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Completed
 
+- Fixed the deployment build failure by changing the production build script to run `prisma generate` before `next build`, so the ignored Prisma 7 client output exists before Next.js resolves server imports. Removed `package-lock.json` per repo/package-management direction. Verified with `npm run build` (Prisma Client generated, Next production build passed).
 - `context/feature-specs/01-design-system.md`
 - `context/feature-specs/02-editor.md`
 - `context/feature-specs/03-auth.md`
